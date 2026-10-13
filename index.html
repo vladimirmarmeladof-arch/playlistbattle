@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Плейлист-дуэль</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--bg:var(--tg-theme-bg-color,#f6f4ff);--card:var(--tg-theme-secondary-bg-color,#fff);--tx:var(--tg-theme-text-color,#1c1b29);--mu:var(--tg-theme-hint-color,#6d6a85);--ac:var(--tg-theme-button-color,#6c4bff);--btx:var(--tg-theme-button-text-color,#fff);--ac2:#ff5d8f;--bd:rgba(127,127,160,.3);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:var(--tg-theme-bg-color,#14131d);--card:var(--tg-theme-secondary-bg-color,#1f1e2c);--tx:var(--tg-theme-text-color,#f1effa);--mu:var(--tg-theme-hint-color,#9a97b5)}}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif}
+#app{max-width:480px;margin:0 auto;padding:16px}
+h1{font-size:26px;margin:8px 0 4px}h2{font-size:20px;margin:0 0 8px}
+.mu{color:var(--mu);font-size:14px}
+.box{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:16px;margin:12px 0}
+button{font:inherit;border:0;border-radius:14px;padding:14px 16px;background:var(--ac);color:var(--btx);font-weight:600;width:100%;margin:6px 0;cursor:pointer}
+button.alt{background:var(--card);color:var(--tx);border:1px solid var(--bd)}
+button.sel{background:var(--ac2);color:#fff;border-color:var(--ac2)}
+button:disabled{opacity:.5}
+textarea{width:100%;min-height:150px;font:inherit;padding:12px;border-radius:12px;border:1px solid var(--bd);background:var(--bg);color:var(--tx)}
+.dice{font-size:96px;text-align:center;line-height:1.1}
+.big{font-size:20px;font-weight:700;text-align:center}
+.cardx{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;border-radius:18px;padding:18px;text-align:center;margin:12px 0}
+.cardx .e{font-size:44px}.cardx .t{font-size:20px;font-weight:700}.cardx .d{opacity:.95;margin-top:4px}
+.row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bd)}
+.row:last-child{border:0}
+.chk{display:flex;gap:8px;align-items:center;margin:8px 0}
+.top{display:flex;justify-content:space-between;align-items:center}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+var CARDS=[
+{e:'🆕',t:'Недавно добавленный',d:'Ставь трек, который добавил(а) в плейлист недавно'},
+{e:'❤️',t:'Самый любимый',d:'Ставь трек, который любишь больше всего'},
+{e:'😳',t:'Гилти плежер',d:'Ставь трек, за который немного стыдно'},
+{e:'🕰',t:'Старше 2010 года',d:'Только треки, вышедшие до 2010-го'},
+{e:'🔥',t:'Релиз этого года',d:'Только треки, вышедшие в этом году'},
+{e:'🌍',t:'Не на русском и не на английском',d:'Ищи трек на любом другом языке'},
+{e:'🎤',t:'Без слов',d:'Только инструментал'},
+{e:'😢',t:'Грустный трек',d:'Ставь самый грустный из найденных'},
+{e:'💃',t:'Танцевальный трек',d:'Ставь то, под что хочется танцевать'},
+{e:'🎲',t:'Двойная кость',d:'Бросаем кость дважды, берём большее',id:'double'},
+{e:'🏆',t:'Двойные очки',d:'Победитель раунда получает 2 балла',id:'dpts'},
+{e:'🔄',t:'Наоборот',d:'Судья выбирает худший трек, и балл получает его владелец'},
+{e:'🎁',t:'Подарок',d:'Играешь трек из плейлиста соседа слева'},
+{e:'🙈',t:'Слепое прослушивание',d:'Судья отворачивается и не видит, кто ставит'},
+{e:'🤝',t:'Делим балл',d:'Судья выбирает двух игроков, каждый получает по 0,5',id:'split'},
+{e:'🕵️',t:'Угадай владельца',d:'Если судья угадал, чей это трек, он получает +1',id:'guess'},
+{e:'🐢',t:'Только начало',d:'Играем только первые 30 секунд каждого трека'},
+{e:'⚡',t:'Блиц',d:'Каждый ставит трек не дольше 20 секунд'}
+];
+var S=null,KEY='playlist-dice-v1';
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function load(){try{var v=localStorage.getItem(KEY);return v?JSON.parse(v):null}catch(e){return null}}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+function fmt(n){return String(n).replace('.',',')}
+var TG=window.Telegram&&window.Telegram.WebApp;
+if(TG){try{TG.ready();TG.expand();TG.disableVerticalSwipes&&TG.disableVerticalSwipes()}catch(e){}}
+function hap(t){try{TG&&TG.HapticFeedback&&(t?TG.HapticFeedback.notificationOccurred(t):TG.HapticFeedback.impactOccurred('medium'))}catch(e){}}
+var $=document.getElementById('app');
+var saved=load();
+
+function setup(msg){
+$.innerHTML='<h1>🎧 Плейлист-дуэль</h1><div class="mu">Кость, судьи по кругу, карточки и подсчёт очков</div>'+
+'<div class="box"><h2>Игроки</h2><div class="mu">Имена по одному в строке (от 2 до 10)</div><textarea id="names" placeholder="Аня&#10;Миша&#10;Катя"></textarea>'+
+'<div class="mu" style="margin-top:8px">Раундов: <select id="rn" style="font:inherit"><option>6</option><option selected>8</option><option>10</option><option>12</option></select></div>'+
+(msg?'<div style="color:var(--ac2);margin-top:8px">'+msg+'</div>':'')+
+'<button onclick="start()">Начать игру</button></div>'+
+(saved&&saved.players?'<button class="alt" onclick="resume()">Продолжить прошлую игру</button>':'');
+}
+function resume(){S=saved;render()}
+function start(){
+var names=document.getElementById('names').value.split('\n').map(function(s){return s.trim()}).filter(Boolean);
+if(names.length<2||names.length>10){return setup('Нужно от 2 до 10 имён, сейчас: '+names.length)}
+S={players:names.map(function(n){return {name:n,score:0}}),round:0,total:+document.getElementById('rn').value,deck:shuffle(CARDS),card:null,rolls:[],phase:'roll',tb:false,leaders:[],tbJudge:0,sel:[],guess:false};
+newRound();
+}
+function newRound(){
+S.rolls=[];S.sel=[];S.guess=false;S.phase='roll';S.card=null;
+if(S.round>=2&&!S.tb){if(!S.deck.length)S.deck=shuffle(CARDS);S.card=S.deck.pop()}
+save();render();
+}
+function judgeIdx(){return S.tb?S.tbJudge:S.round%S.players.length}
+function cands(){
+var j=judgeIdx(),r=[];
+S.players.forEach(function(p,i){if(i!==j&&(!S.tb||S.leaders.indexOf(i)>-1))r.push(i)});
+return r;
+}
+function roll(){
+var times=(S.card&&S.card.id==='double')?2:1,btn=document.getElementById('rb');if(btn)btn.disabled=true;
+var el=document.getElementById('dc'),faces='⚀⚁⚂⚃⚄⚅',k=0;
+var iv=setInterval(function(){el.textContent=faces[Math.floor(Math.random()*6)];k++;
+if(k>12){clearInterval(iv);hap();S.rolls=[];for(var i=0;i<times;i++)S.rolls.push(1+Math.floor(Math.random()*6));S.phase='pick';save();render()}},70);
+}
+function result(){return Math.max.apply(null,S.rolls)}
+function pick(i){
+if(S.card&&S.card.id==='split'){
+var k=S.sel.indexOf(i);if(k>-1)S.sel.splice(k,1);else if(S.sel.length<2)S.sel.push(i);
+return render();}
+award([i],S.card&&S.card.id==='dpts'?2:1);
+}
+function confirmSplit(){award(S.sel,0.5)}
+function award(ids,pts){
+hap('success');ids.forEach(function(i){S.players[i].score+=pts});
+var g=document.getElementById('gs');if(S.card&&S.card.id==='guess'&&g&&g.checked)S.players[judgeIdx()].score+=1;
+if(S.tb||S.round+1>=S.total){S.phase='final'}else{S.round++;return newRound()}
+save();render();
+}
+function leaders(){var m=Math.max.apply(null,S.players.map(function(p){return p.score}));var r=[];S.players.forEach(function(p,i){if(p.score===m)r.push(i)});return r}
+function tiebreak(){
+var L=leaders(),n=S.players.length,j=-1;
+for(var i=0;i<n;i++){if(L.indexOf(i)<0){j=i;break}}
+if(j<0)j=S.round%n;
+S.tb=true;S.leaders=L;S.tbJudge=j;S.round++;S.rolls=[];S.sel=[];S.card=null;S.phase='roll';save();render();
+}
+function reset(){S=null;try{localStorage.removeItem(KEY)}catch(e){}saved=null;setup()}
+function board(){
+var h='<div class="box"><h2>Очки</h2>';
+S.players.map(function(p,i){return {n:p.name,s:p.score,i:i}}).sort(function(a,b){return b.s-a.s}).forEach(function(p){
+h+='<div class="row"><span>'+(p.i===judgeIdx()&&S.phase!=='final'?'⚖️ ':'')+esc(p.n)+'</span><b>'+fmt(p.s)+'</b></div>'});
+return h+'</div>';
+}
+function render(){
+if(!S)return setup();
+if(S.phase==='final')return final();
+var j=S.players[judgeIdx()].name,h='<div class="top"><div class="mu">'+(S.tb?'Дополнительный раунд':'Раунд '+(S.round+1)+' из '+S.total)+'</div><button class="alt" style="width:auto;padding:6px 12px;margin:0" onclick="if(confirm(\'Закончить игру?\'))reset()">Выйти</button></div>';
+h+='<h1>⚖️ Судья: '+esc(j)+'</h1>';
+if(S.tb)h+='<div class="mu">Играют: '+S.leaders.map(function(i){return esc(S.players[i].name)}).join(', ')+'</div>';
+if(S.card)h+='<div class="cardx"><div class="e">'+S.card.e+'</div><div class="t">'+S.card.t+'</div><div class="d">'+S.card.d+'</div></div>';
+else if(S.round<2&&!S.tb)h+='<div class="mu">Карточки-особенности начнутся с 3-го раунда</div>';
+if(S.phase==='roll'){
+h+='<div class="box"><div class="dice" id="dc">🎲</div>'+(S.card&&S.card.id==='double'?'<div class="mu" style="text-align:center">Кость бросится дважды</div>':'')+'<button id="rb" onclick="roll()">Бросить кость</button></div>';
+}else{
+var r=S.rolls,n=result();
+h+='<div class="box"><div class="dice">'+'⚀⚁⚂⚃⚄⚅'[n-1]+'</div><div class="big">Выпало '+n+(r.length>1?' (из '+r.join(' и ')+')':'')+'</div><div class="mu" style="text-align:center">Все '+n+' '+(n===1?'раз':(n<5?'раза':'раз'))+' пролистывают свой плейлист в шаффле и ставят трек</div></div>';
+h+='<div class="box"><h2>Кто победил в раунде?</h2>';
+if(S.card&&S.card.id==='guess')h+='<label class="chk"><input type="checkbox" id="gs"> Судья угадал владельца (+1 судье)</label>';
+cands().forEach(function(i){h+='<button class="'+(S.sel.indexOf(i)>-1?'sel':'alt')+'" onclick="pick('+i+')">'+esc(S.players[i].name)+'</button>'});
+if(S.card&&S.card.id==='split')h+='<button '+(S.sel.length===2?'':'disabled')+' onclick="confirmSplit()">Подтвердить выбор ('+S.sel.length+'/2)</button>';
+h+='</div>';
+}
+$.innerHTML=h+board();
+}
+function final(){
+var L=leaders(),h='<h1>🏁 Итоги</h1>';
+if(L.length===1)h+='<div class="cardx"><div class="e">🏆</div><div class="t">Победитель: '+esc(S.players[L[0]].name)+'</div><div class="d">'+fmt(S.players[L[0]].score)+' очк.</div></div>';
+else h+='<div class="cardx"><div class="e">🤝</div><div class="t">Ничья: '+L.map(function(i){return esc(S.players[i].name)}).join(', ')+'</div><div class="d">Сыграйте дополнительный раунд между лидерами</div></div><button onclick="tiebreak()">Дополнительный раунд</button>';
+h+=board().replace('⚖️ ','')+'<button class="alt" onclick="reset()">Новая игра</button>';
+$.innerHTML=h;
+}
+setup();
+</script>
+</body>
+</html>
