@@ -121,7 +121,8 @@ h1.ttl .lbl .p{font-size:clamp(16px,6.2vw,29px);line-height:1.05;letter-spacing:
 <div id="app"></div>
 <script>
 var JK='Модификаторы'; /* так называются карточки-особенности: поменяй здесь */
-var CARDS=[
+/* Тип 1: тема трека, кость не бросается. Тип 2: меняет бросок кости. */
+var CARDS1=[
 {e:'🆕',t:'Свежее в плейлисте',d:'Ставь трек, который добавил(а) недавно'},
 {e:'❤️',t:'Самый любимый',d:'Ставь трек, который любишь больше всего'},
 {e:'😳',t:'Гилти плежер',d:'Ставь трек, за который немного стыдно'},
@@ -131,12 +132,24 @@ var CARDS=[
 {e:'🎤',t:'Без слов',d:'Только инструментал'},
 {e:'😢',t:'Грустный трек',d:'Ставь самый грустный из найденных'},
 {e:'💃',t:'Танцевальный трек',d:'Ставь то, под что хочется танцевать'},
-{e:'🎲',t:'Двойная кость',d:'Бросаем кость дважды, берём большее',id:'double'},
-{e:'🏆',t:'Двойные очки',d:'Победитель раунда получает 2 балла',id:'dpts'},
-{e:'🔄',t:'Наоборот',d:'Судья выбирает худший трек, балл получает его владелец'},
-{e:'🎁',t:'Подарок',d:'Ставь трек из плейлиста соседа слева'},
-{e:'🕵️',t:'Угадай владельца',d:'Угадал, чей трек, и получил +1 балл',id:'guess'},
+{e:'🎤',t:'Знаешь наизусть',d:'Ставь трек, который можешь спеть без подсказки'},
+{e:'🙈',t:'Никто не слышал',d:'Ставь трек, который здесь точно никто не знает'},
+{e:'☀️',t:'Лето в наушниках',d:'Ставь трек, который напоминает о лете'},
+{e:'🚗',t:'В долгую дорогу',d:'Ставь трек, который хорошо слушать в пути'}
 ];
+var CARDS2=[
+{e:'🎲',t:'Двойная кость',d:'Бросаем две кости, берём большее',id:'double'},
+{e:'➕',t:'Сумма костей',d:'Бросаем две кости, листаем их сумму',id:'sum2'},
+{e:'🤔',t:'Две на выбор',d:'Бросаем две кости, судья выбирает любую',id:'choose2'},
+{e:'⬆️',t:'Плюс два',d:'К броску добавляем 2',id:'plus2'},
+{e:'⬇️',t:'Минус два',d:'Из броска вычитаем 2, но минимум 1',id:'minus2'},
+{e:'➡️',t:'Сосед справа',d:'Все листают плейлист соседа справа',id:'right'},
+{e:'🫱',t:'Чужая рука',d:'Кость бросает не судья, а следующий игрок',id:'thrower'},
+{e:'📜',t:'Без шаффла',d:'Листаем подряд, начиная с последнего добавленного',id:'noshuffle'},
+{e:'⚖️',t:'Плейлист судьи',d:'Все листают плейлист судьи',id:'judge'}
+];
+CARDS1.forEach(function(c){c.k=1});CARDS2.forEach(function(c){c.k=2});
+var CARDS=CARDS1.concat(CARDS2);
 var PAL=['#ffb311','#ff5a8c','#82b3e6'],AVC=['#ffb311','#ff5a8c','#82b3e6','#faf6f4'];
 CARDS.forEach(function(c,i){c.h=PAL[i%3]});
 function hc(c){return typeof c.h==='string'?c.h:PAL[0]}
@@ -147,7 +160,7 @@ var SLIDES=[
 {e:'🃏',t:JK,d:''},
 {e:'🏆',t:'Кто победит?',d:'После всех раундов выигрывает тот, у кого больше очков. Ничья решается допраундом.'}
 ];
-SLIDES[3].d='С 3-го раунда перед броском открывается карта-модификатор с особым условием. Их можно отключить в меню.';
+SLIDES[3].d='С 3-го раунда выпадают модификаторы. Одни задают тему трека, и кость не бросается. Другие меняют бросок кости. В длинной игре бывают раунды без модификатора. Их можно отключить в меню.';
 var KEY='playlist-dice-v2',CK='playlist-dice-cfg',S=null,screen='intro',sl=0;
 function jget(k){try{var v=localStorage.getItem(k);return v?JSON.parse(v):null}catch(e){return null}}
 function jset(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
@@ -205,7 +218,7 @@ h+='<div class="glass"><h2>Раунды</h2><div class="seg">'+[6,8,10,12].map(f
 h+='<div class="glass"><h2>Игроки</h2><div class="stp"><button class="ghost" onclick="cnt(-1)">−</button><b>'+CFG.count+'</b><button class="ghost" onclick="cnt(1)">+</button></div>';
 for(var i=0;i<CFG.count;i++)h+='<div class="nm">'+av(CFG.names[i]||('И'),i)+'<input maxlength="16" placeholder="Игрок '+(i+1)+'" value="'+esc(CFG.names[i]||'')+'" oninput="CFG.names['+i+']=this.value;jset(CK,CFG)"></div>';
 h+='</div>';
-h+='<div class="glass tg" onclick="CFG.cards=!CFG.cards;jset(CK,CFG);menu()"><div><b>'+JK+'</b><div class="mu">'+(CFG.cards?'С 3-го раунда перед броском открывается карта-модификатор':'Выключены: играем без особых условий')+'</div></div><div class="sw '+(CFG.cards?'on':'')+'"><i></i></div></div>';
+h+='<div class="glass tg" onclick="CFG.cards=!CFG.cards;jset(CK,CFG);menu()"><div><b>'+JK+'</b><div class="mu">'+(CFG.cards?'С 3-го раунда: тема трека или особый бросок кости':'Выключены: играем без особых условий')+'</div></div><div class="sw '+(CFG.cards?'on':'')+'"><i></i></div></div>';
 if(msg)h+='<div class="err">'+msg+'</div>';
 h+='<button onclick="start()">Начать игру</button>';
 if(saved&&saved.players)h+='<button class="ghost" onclick="S=saved;screen=\'game\';render()">Продолжить прошлую игру</button>';
@@ -216,17 +229,48 @@ function cnt(d){var n=CFG.count+d;if(n<2||n>10)return;CFG.count=n;while(CFG.name
 function start(){
 var names=[],i,n,k;
 for(i=0;i<CFG.count;i++){n=(CFG.names[i]||'').trim()||('Игрок '+(i+1));k=2;var b=n;while(names.indexOf(n)>-1)n=b+' '+(k++);names.push(n)}
-S={players:names.map(function(n){return {name:n,score:0}}),round:0,total:CFG.rounds,cards:CFG.cards,deck:shuffle(CARDS),card:null,rolls:[],phase:'roll',tb:false,leaders:[],tbJudge:0,sel:[],guess:false,flipped:false};
+S={players:names.map(function(n){return {name:n,score:0}}),round:0,total:CFG.rounds,cards:CFG.cards,d1:shuffle(CARDS1),d2:shuffle(CARDS2),plain:0,ch:null,card:null,rolls:[],phase:'roll',tb:false,leaders:[],tbJudge:0,sel:[],guess:false,flipped:false};
 screen='game';newRound();
 }
 
 /* ---------- game ---------- */
 function newRound(){
-S.rolls=[];S.sel=[];S.guess=false;S.card=null;S.flipped=false;
-if(S.cards&&S.round>=2&&!S.tb){if(!S.deck.length)S.deck=shuffle(CARDS);S.card=S.deck.pop()}
+S.rolls=[];S.sel=[];S.guess=false;S.card=null;S.flipped=false;S.ch=null;
+if(S.cards&&S.round>=2&&!S.tb){
+var want=true;
+if(S.total>=8&&(S.plain||0)<2)want=Math.random()<0.5;
+if(want){
+var k=Math.random()<0.5?1:2,key=k===1?'d1':'d2',src=k===1?CARDS1:CARDS2;
+if(!S[key]||!S[key].length)S[key]=shuffle(src);
+S.card=S[key].pop();
+}
+}
+S.plain=S.card?0:(S.plain||0)+1;
 S.phase=S.card?'card':'roll';
 save();render();window.scrollTo(0,0);
 }
+function themed(){return !!(S.card&&S.card.k===1)}
+function nDice(){var c=cid();return (c==='double'||c==='sum2'||c==='choose2')?2:1}
+function calc(){var r=S.rolls,c=cid();
+if(c==='sum2')return r[0]+r[1];
+if(c==='choose2')return S.ch;
+if(c==='plus2')return r[0]+2;
+if(c==='minus2')return Math.max(1,r[0]-2);
+return Math.max.apply(null,r)}
+function times(n){var m=n%10;return (m>=2&&m<=4&&(n<12||n>14))?'раза':'раз'}
+function note(){var r=S.rolls,c=cid();
+if(c==='double')return 'Берём большее из '+r.join(' и ')+'. ';
+if(c==='sum2')return 'Сумма: '+r.join(' + ')+'. ';
+if(c==='choose2')return 'Судья выбрал '+S.ch+' из '+r.join(' и ')+'. ';
+if(c==='plus2')return 'Выпало '+r[0]+', плюс 2. ';
+if(c==='minus2')return 'Выпало '+r[0]+', минус 2'+(r[0]<3?' (минимум 1)':'')+'. ';
+return ''}
+function how(n){var c=cid(),t=n+' '+times(n);
+if(c==='right')return 'Листаем плейлист соседа справа '+t;
+if(c==='judge')return 'Листаем плейлист судьи '+t;
+if(c==='noshuffle')return 'Листаем подряд, с последнего добавленного: '+t;
+return 'Все листают плейлист '+t}
+function choose(v){S.ch=v;hap();save();game()}
 function judgeIdx(){return S.tb?S.tbJudge:S.round%S.players.length}
 function cid(){return S.card&&S.card.id?S.card.id:''}
 function cands(){var j=judgeIdx(),r=[];S.players.forEach(function(p,i){if(i!==j&&(!S.tb||S.leaders.indexOf(i)>-1))r.push(i)});return r}
@@ -238,36 +282,47 @@ return '<div class="top"><span class="pill">'+(S.tb?'Допраунд':'Раун
 }
 function cardScreen(){
 var j=S.players[judgeIdx()].name;
-$.innerHTML='<div class="rnd">'+topbar()+'<div class="stage"><div class="cdh" id="hint">'+(S.flipped?'Модификатор раунда':'Нажми на карту, чтобы открыть модификатор')+'</div>'+cardHTML(S.card,S.flipped,'flipCard()')+'<button id="nx" style="margin-top:22px" '+(S.flipped?'':'disabled')+' onclick="goRoll()">К броску кости</button></div></div>';
+$.innerHTML='<div class="rnd">'+topbar()+'<div class="stage"><div class="cdh" id="hint">'+(S.flipped?(themed()?'Тема трека: кость не бросаем':'Меняет бросок кости'):'Нажми на карту, чтобы открыть модификатор')+'</div>'+cardHTML(S.card,S.flipped,'flipCard()')+'<button id="nx" style="margin-top:22px" '+(S.flipped?'':'disabled')+' onclick="goRoll()">'+(themed()?'К выбору трека':'К броску кости')+'</button></div></div>';
 }
 function flipCard(){
 if(S.flipped)return;S.flipped=true;hap();save();
 document.getElementById('c3').classList.add('fl');
 document.getElementById('nx').disabled=false;
-document.getElementById('hint').textContent='Модификатор раунда';
+document.getElementById('hint').textContent=themed()?'Тема трека: кость не бросаем':'Меняет бросок кости';
 }
 function goRoll(){S.phase='roll';save();render()}
 function peek(){
 var o=document.createElement('div');o.className='ov';o.onclick=closeOv;
 o.innerHTML=cardHTML(S.card,true,'');document.body.appendChild(o);
 }
-function dice(vals){
+function dice(vals,nowin){
 var mx=Math.max.apply(null,vals);
-return '<div class="dice">'+vals.map(function(v){return '<div class="die'+(vals.length>1?' sm':'')+(vals.length>1&&v===mx?' win':'')+'">'+pips(v)+'</div>'}).join('')+'</div>';
+return '<div class="dice">'+vals.map(function(v){return '<div class="die'+(vals.length>1?' sm':'')+(vals.length>1&&!nowin&&v===mx?' win':'')+'">'+pips(v)+'</div>'}).join('')+'</div>';
 }
 function game(){
 if(S.phase==='final')return final();
 if(S.phase==='card')return cardScreen();
-var j=judgeIdx(),rolled=S.phase==='pick',times=cid()==='double'?2:1,h='<div class="rnd">'+topbar()+'<div class="stage">';
-if(rolled){
-var n=Math.max.apply(null,S.rolls);
-h+=dice(S.rolls)+'<div class="res">Выпало '+n+'<small>'+(S.rolls.length>1?'Берём большее из '+S.rolls.join(' и ')+'. ':'')+'Все листают плейлист '+n+' '+(n<5?'раза':'раз')+'</small></div>';
+var j=judgeIdx(),c=cid(),th=themed(),rolled=S.phase==='pick',two=nDice()===2,h='<div class="rnd">'+topbar()+'<div class="stage">';
+var locked=false;
+if(th){
+h+='<div class="ill">'+S.card.e+'</div><div class="res">'+S.card.t+'<small>'+S.card.d+'. Кость не бросаем</small></div>';
+}else if(rolled){
+var nw=(c==='sum2'||c==='choose2');
+if(c==='choose2'&&S.ch==null){
+locked=true;
+h+=dice(S.rolls,true)+'<div class="res">Судья выбирает кость<small>Какое число листаем?</small></div>';
+S.rolls.forEach(function(v){h+='<button onclick="choose('+v+')">Листаем '+v+'</button>'});
 }else{
-h+=dice(times===2?[6,6]:[6])+'<button id="rb" onclick="roll()">🎲 Бросить кость</button>';
+var n=calc();
+h+=dice(S.rolls,nw)+'<div class="res">'+((c==='sum2'||c==='plus2'||c==='minus2')?'Итого ':'Выпало ')+n+'<small>'+note()+how(n)+'</small></div>';
+}
+}else{
+var who=c==='thrower'?S.players[(j+1)%S.players.length].name:'';
+h+=dice(two?[6,6]:[6])+(c==='thrower'?'<div class="mu" style="text-align:center;margin-bottom:8px">Кость бросает '+esc(who)+', а не судья</div>':'')+'<button id="rb" onclick="roll()">🎲 '+(c==='thrower'?'Бросает '+esc(who):'Бросить кость')+'</button>';
 }
 h+='</div><div class="glass jd">'+av(S.players[j].name,j)+'<div><div class="l">Судья'+(S.tb?' допраунда':'')+'</div><div class="n">'+esc(S.players[j].name)+'</div></div></div>';
 if(S.card)h+='<div class="strip" style="--h:'+hc(S.card)+'" onclick="peek()"><b>'+S.card.e+'</b>'+S.card.t+'<em>показать</em></div>';
-h+='<div class="glass vote '+(rolled?'':'lock')+'"><h2>'+(rolled?'Лучший трек у кого?':'Голосование после броска')+'</h2>';
+h+='<div class="glass vote '+((rolled||th)&&!locked?'':'lock')+'"><h2>'+((rolled||th)&&!locked?'Лучший трек у кого?':(th?'':'Голосование после броска'))+'</h2>';
 if(cid()==='guess')h+='<div class="chk '+(S.guess?'on':'')+'" onclick="S.guess=!S.guess;game()">'+(S.guess?'✅':'⬜')+' Судья угадал владельца (+1 судье)</div>';
 h+='<div class="grid">';
 cands().forEach(function(i){h+='<button class="pl '+(S.sel.indexOf(i)>-1?'on':'')+'" onclick="pick('+i+')">'+av(S.players[i].name,i)+'<span>'+esc(S.players[i].name)+'</span></button>'});
@@ -276,7 +331,7 @@ if(cid()==='split')h+='<button '+(S.sel.length===2?'':'disabled')+' onclick="awa
 $.innerHTML=h+'</div></div>';
 }
 function roll(){
-var times=cid()==='double'?2:1,b=document.getElementById('rb');b.disabled=true;
+var times=nDice(),b=document.getElementById('rb');b.disabled=true;
 var ds=document.querySelectorAll('.die');ds.forEach(function(d){d.classList.add('shake')});var k=0;
 var iv=setInterval(function(){ds.forEach(function(d){d.innerHTML=pips(1+Math.floor(Math.random()*6))});k++;
 if(k>13){clearInterval(iv);hap();S.rolls=[];for(var i=0;i<times;i++)S.rolls.push(1+Math.floor(Math.random()*6));S.phase='pick';save();render()}},75);
