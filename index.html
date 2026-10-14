@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ПЛЕЙЛИСТ БАТТЛ</title>
+<title>Битва Плейлистов</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root{--bg:#82b3e6;--ink:#2a2a2a;--pn:#2a2a2a;--pn2:#3b3b3b;--ln:#4a4a4a;--tx:#faf6f4;--mu:#b5b0ac;--ye:#ffb311;--pk:#ff5a8c}
@@ -44,7 +44,7 @@ button:disabled{opacity:.4}
 .sw.on{background:var(--ye)}.sw.on i{left:23px}
 .err{color:#8a1538;font-size:14px;font-weight:700;margin-top:8px}
 .lnk{background:none;color:var(--ink);font-weight:700;opacity:.8}
-.av{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:17px;color:var(--ink)}
+.av{flex:none;width:40px;height:40px;display:block}.av svg{width:100%;height:100%;display:block;overflow:visible}
 .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .top>span:last-child{display:flex;gap:6px}
 .pill{padding:7px 12px;border-radius:99px;background:var(--pn);color:var(--tx);font-size:13px;font-weight:700}
@@ -91,7 +91,31 @@ button:disabled{opacity:.4}
 .trophy{text-align:center;font-size:64px;line-height:1.1}.big{text-align:center;font-size:28px;font-weight:900;font-style:italic}
 .cft{position:fixed;top:-40px;font-size:22px;animation:fall linear forwards;pointer-events:none;z-index:70}
 @keyframes fall{to{transform:translateY(110vh) rotate(360deg)}}
+.glass,.sh,.pill,.die,h1.ttl{border:3px solid #111}
+button{border:3px solid #111}.lnk{border:0}
+.strip{border:3px solid #111;border-left:6px solid var(--h)}
+.wcard{position:relative;max-width:300px;margin:22px auto 12px;background:var(--ye);border:4px solid #111;border-radius:32px;padding:16px;box-shadow:6px 6px 0 #111;animation:wpop .7s cubic-bezier(.3,1.5,.5,1) backwards}
+.wtop,.wname{background:#fff;border:3px solid #111;border-radius:99px;padding:8px 14px;text-align:center;font-weight:900;color:#111}
+.wtop{font-size:20px}.wname{font-size:18px}
+.wmas{background:var(--pn);border:3px solid #111;border-radius:24px;margin:12px 0;padding:16px}
+.wmas svg{display:block;width:70%;margin:0 auto;animation:bob 1.8s ease-in-out infinite}
+.wbadge{position:absolute;top:-16px;left:-12px;width:40px;height:40px;border-radius:50%;background:#ff4d3d;border:3px solid #111;display:grid;place-items:center;font-weight:900;color:#fff;font-size:18px}
+.jd .av svg{animation:bob 2.2s ease-in-out infinite}
+@keyframes wpop{from{opacity:0;transform:translateY(50px) rotate(-8deg) scale(.8)}}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-5px) rotate(3deg)}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+h1.ttl{background:conic-gradient(#ff5a8c 25%,#ff7fa8 0 50%,#ff5a8c 0 75%,#ff7fa8 0) 0 0/26px 26px;padding:14px;border-radius:20px;letter-spacing:0;font-style:normal;box-shadow:6px 6px 0 #111}
+.lbl,.bk .bl{display:block;background:#f5f0ea;text-align:center;font-family:'Unbounded','Arial Black',Impact,sans-serif;font-weight:900;font-style:normal;text-transform:uppercase;letter-spacing:0}
+.lbl{padding:16px 10px 14px}
+h1.ttl .lbl .y,h1.ttl .lbl .p,.bk .bl .y,.bk .bl .p{display:block;color:#111}
+h1.ttl .lbl .y{font-size:clamp(34px,13vw,60px);line-height:1;letter-spacing:-.03em}
+h1.ttl .lbl .p{font-size:clamp(16px,6.2vw,29px);line-height:1.05;letter-spacing:-.02em;margin-top:3px}
+.bk{background:conic-gradient(#ff5a8c 25%,#ff7fa8 0 50%,#ff5a8c 0 75%,#ff7fa8 0) 0 0/22px 22px}.bk:before{display:none}
+.bk .bl{width:84%;padding:12px 8px 10px;line-height:1}
+.bk .bl .y{font-size:clamp(26px,10vw,42px);letter-spacing:-.03em}
+.bk .bl .p{font-size:clamp(12px,4.7vw,20px);letter-spacing:-.02em;margin-top:3px}
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@900&display=swap" rel="stylesheet">
 </head>
 <body>
 <div id="app"></div>
@@ -137,7 +161,26 @@ function save(){jset(KEY,S)}
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
 function fmt(n){return String(n).replace('.',',')}
-function av(name,i){return '<span class="av" style="background:'+AVC[i%4]+'">'+esc((name||'?').charAt(0).toUpperCase())+'</span>'}
+var MS='#2b2b2b';
+function eye(x,y,px,py){return '<circle cx="'+x+'" cy="'+y+'" r="8" fill="#fff" stroke="none"/><circle cx="'+px+'" cy="'+py+'" r="4" fill="'+MS+'" stroke="none"/>'}
+function tng(x,y){return '<ellipse cx="'+x+'" cy="'+y+'" rx="4.5" ry="5.5" fill="#FF6F91" stroke="none"/>'}
+var FB=[[50,50,26],[78,50,18],[64,74,18],[36,74,18],[22,50,18],[36,26,18],[64,26,18]];
+function flw(f,s){return FB.map(function(c){return '<circle cx="'+c[0]+'" cy="'+c[1]+'" r="'+c[2]+'" fill="'+f+'" stroke="'+s+'" stroke-width="'+(s==='none'?0:8)+'"/>'}).join('')}
+function gr(f,s){var r=[0,45,90,135].map(function(a){return '<rect x="-13" y="-42" width="26" height="84" rx="12" transform="rotate('+a+')"/>'}).join('');return '<g transform="translate(50 50)" fill="'+f+'" stroke="'+s+'" stroke-width="'+(s==='none'?0:8)+'"><circle r="30"/>'+r+'</g>'}
+var STAR='50,15.5 65,35 89,39.5 75.3,60.4 82,84.5 50,73 18,84.5 24.7,60.4 11,39.5 35,35';
+var TRI='50,24 74,70 26,70';
+var MB=[
+'<rect x="12" y="12" width="76" height="76" rx="36" fill="#FF8FB8" stroke="#fff" stroke-width="4"/>'+eye(36,46,40,48)+eye(64,46,60,48)+'<path d="M36 68Q44 60 50 68T64 68"/>',
+flw('#5FE0B0','#fff')+flw('#5FE0B0','none')+'<path d="M34 46Q39 38 44 46M56 46Q61 38 66 46"/><path d="M40 58Q50 74 60 58Z" fill="'+MS+'"/>',
+'<polygon points="'+STAR+'" fill="#fff" stroke="#fff" stroke-width="20"/><polygon points="'+STAR+'" fill="#B392FF" stroke="#B392FF" stroke-width="14"/><path d="M38 50L46 55L38 60M62 50L54 55L62 60"/><path d="M43 66Q50 74 57 66"/>'+tng(50,72),
+'<path d="M18 82V46C18 8 82 8 82 46V82A10.67 10.67 0 0 1 60.67 82A10.67 10.67 0 0 1 39.33 82A10.67 10.67 0 0 1 18 82Z" fill="#FFD93D" stroke="#fff" stroke-width="4"/><path d="M34 44Q40 50 46 44M54 44Q60 50 66 44"/><ellipse cx="50" cy="60" rx="5" ry="6" fill="'+MS+'" stroke="none"/><circle cx="56" cy="70" r="3" fill="#BFE3FF" stroke="none"/>',
+'<polygon points="'+TRI+'" fill="#fff" stroke="#fff" stroke-width="34"/><polygon points="'+TRI+'" fill="#FF8A75" stroke="#FF8A75" stroke-width="28"/>'+eye(42,55,43,57).replace(/r="8"/,'r="6"')+eye(58,55,57,57).replace(/r="8"/,'r="6"')+'<path d="M40 66Q50 78 60 66Z" fill="'+MS+'"/>',
+'<ellipse cx="50" cy="52" rx="40" ry="36" fill="#6EB6FF" stroke="#fff" stroke-width="4"/>'+eye(36,46,38,48)+'<path d="M56 48Q63 40 70 48"/><path d="M38 62Q50 74 62 62"/>'+tng(58,72),
+gr('#FFAA5C','#fff')+gr('#FFAA5C','none')+'<path d="M33 42L43 52M43 42L33 52M57 42L67 52M67 42L57 52"/><path d="M38 62Q50 70 62 62"/>'+tng(56,70),
+'<rect x="10" y="28" width="80" height="44" rx="20" fill="#fff" stroke="#fff" stroke-width="6"/><rect x="28" y="10" width="44" height="80" rx="20" fill="#fff" stroke="#fff" stroke-width="6"/><rect x="10" y="28" width="80" height="44" rx="20" fill="#A8E85C" stroke="none"/><rect x="28" y="10" width="44" height="80" rx="20" fill="#A8E85C" stroke="none"/>'+eye(38,44,38,42)+eye(62,44,62,42)+'<ellipse cx="50" cy="62" rx="6" ry="7" fill="'+MS+'" stroke="none"/>'
+];
+function mascot(i){return '<svg viewBox="0 0 100 100" aria-hidden="true"><g stroke="'+MS+'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none">'+MB[i%MB.length]+'</g></svg>'}
+function av(name,i){return '<span class="av">'+mascot(i)+'</span>'}
 var PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
 function pips(n){var h='';for(var i=0;i<9;i++)h+='<span'+(PIPS[n].indexOf(i)>-1?' class="p"':'')+'></span>';return h}
 var $=document.getElementById('app');
@@ -157,7 +200,7 @@ function rules(){sl=0;screen='intro';render()}
 
 /* ---------- menu ---------- */
 function menu(msg){
-var h='<h1 class="ttl"><span class="y">ПЛЕЙЛИСТ</span><br><span class="p">БАТТЛ</span></h1>';
+var h='<h1 class="ttl"><span class="lbl"><span class="y">БИТВА</span><span class="p">ПЛЕЙЛИСТОВ</span></span></h1>';
 h+='<div class="glass"><h2>Раунды</h2><div class="seg">'+[6,8,10,12].map(function(n){return '<button class="'+(n===CFG.rounds?'on':'')+'" onclick="CFG.rounds='+n+';jset(CK,CFG);menu()">'+n+'</button>'}).join('')+'</div></div>';
 h+='<div class="glass"><h2>Игроки</h2><div class="stp"><button class="ghost" onclick="cnt(-1)">−</button><b>'+CFG.count+'</b><button class="ghost" onclick="cnt(1)">+</button></div>';
 for(var i=0;i<CFG.count;i++)h+='<div class="nm">'+av(CFG.names[i]||('И'),i)+'<input maxlength="16" placeholder="Игрок '+(i+1)+'" value="'+esc(CFG.names[i]||'')+'" oninput="CFG.names['+i+']=this.value;jset(CK,CFG)"></div>';
@@ -188,7 +231,7 @@ function judgeIdx(){return S.tb?S.tbJudge:S.round%S.players.length}
 function cid(){return S.card&&S.card.id?S.card.id:''}
 function cands(){var j=judgeIdx(),r=[];S.players.forEach(function(p,i){if(i!==j&&(!S.tb||S.leaders.indexOf(i)>-1))r.push(i)});return r}
 function cardHTML(c,fl,click){
-return '<div class="c3'+(fl?' fl':'')+'" id="c3" style="--h:'+hc(c)+'"'+(click?' onclick="'+click+'"':'')+'><div class="ci"><div class="bk"><span class="bl"><span class="y">ПЛЕЙЛИСТ</span><br><span class="p">БАТТЛ</span></span></div><div class="fc"><span class="cn tl">'+c.e+'</span><span class="cn br">'+c.e+'</span><div class="art">'+c.e+'</div><div class="ct">'+c.t+'</div><div class="cd">'+c.d+'</div></div></div></div>';
+return '<div class="c3'+(fl?' fl':'')+'" id="c3" style="--h:'+hc(c)+'"'+(click?' onclick="'+click+'"':'')+'><div class="ci"><div class="bk"><span class="bl"><span class="y">БИТВА</span><span class="p">ПЛЕЙЛИСТОВ</span></span></div><div class="fc"><span class="cn tl">'+c.e+'</span><span class="cn br">'+c.e+'</span><div class="art">'+c.e+'</div><div class="ct">'+c.t+'</div><div class="cd">'+c.d+'</div></div></div></div>';
 }
 function topbar(){
 return '<div class="top"><span class="pill">'+(S.tb?'Допраунд':'Раунд '+(S.round+1)+' из '+S.total)+'</span><span><button class="ghost sm" onclick="sheet()">Очки</button><button class="ghost sm" onclick="ask()">Выйти</button></span></div>';
@@ -276,18 +319,19 @@ for(var i=0;i<26;i++)h+='<span class="cft" style="left:'+Math.random()*100+'%;an
 var d=document.createElement('div');d.innerHTML=h;document.body.appendChild(d);setTimeout(function(){d.remove()},7000);
 }
 function final(){
-var L=leaders(),h='<h1>Итоги</h1><div class="glass">';
-if(L.length===1){var i=L[0];h+='<div class="trophy">🏆</div><div class="mu" style="text-align:center">Победитель</div><div class="big">'+esc(S.players[i].name)+'</div><div class="mu" style="text-align:center">'+fmt(S.players[i].score)+' очк.</div>';setTimeout(confetti,200)}
-else h+='<div class="trophy">🤝</div><div class="big">Ничья</div><div class="mu" style="text-align:center">'+L.map(function(i){return esc(S.players[i].name)}).join(', ')+'</div><button onclick="tiebreak()">Дополнительный раунд</button>';
-h+='</div><div class="glass">'+board(false)+'</div><button class="ghost" onclick="reset()">В меню</button>';
+var L=leaders(),h='<h1>Итоги</h1>';
+if(L.length===1){var i=L[0];h+='<div class="wcard"><span class="wbadge">'+(i+1)+'</span><div class="wtop">Победитель!</div><div class="wmas">'+mascot(i)+'</div><div class="wname">'+esc(S.players[i].name)+' 👑</div></div><div class="mu" style="text-align:center;color:var(--ink)">'+fmt(S.players[i].score)+' очк.</div><div class="glass">';setTimeout(confetti,200)}
+else h+='<div class="glass"><div class="trophy">🤝</div><div class="big">Ничья</div><div class="mu" style="text-align:center">'+L.map(function(i){return esc(S.players[i].name)}).join(', ')+'</div><button onclick="tiebreak()">Дополнительный раунд</button></div><div class="glass">';
+h+=board(false)+'</div><button class="ghost" onclick="reset()">В меню</button>';
 $.innerHTML=h;
 }
-function render(){
+function draw(){
 if(screen==='intro')return intro();
 if(screen==='menu')return menu();
 if(!S){screen='menu';return menu()}
 game();
 }
+function render(){draw()}
 render();
 </script>
 </body>
