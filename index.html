@@ -144,7 +144,7 @@ var CARDS2=[
 {e:'⬆️',t:'Плюс два',d:'К броску добавляем 2',id:'plus2'},
 {e:'⬇️',t:'Минус два',d:'Из броска вычитаем 2, но минимум 1',id:'minus2'},
 {e:'➡️',t:'Сосед справа',d:'Все листают плейлист соседа справа',id:'right'},
-{e:'🫱',t:'Чужая рука',d:'Кость бросает не судья, а следующий игрок',id:'thrower'},
+{e:'⚖️',t:'Рука судьи',d:'Кость бросает судья, а не игроки',id:'thrower'},
 {e:'📜',t:'Без шаффла',d:'Листаем подряд, начиная с последнего добавленного',id:'noshuffle'},
 {e:'⚖️',t:'Плейлист судьи',d:'Все листают плейлист судьи',id:'judge'}
 ];
@@ -154,9 +154,9 @@ var PAL=['#ffb311','#ff5a8c','#82b3e6'],AVC=['#ffb311','#ff5a8c','#82b3e6','#faf
 CARDS.forEach(function(c,i){c.h=PAL[i%3]});
 function hc(c){return typeof c.h==='string'?c.h:PAL[0]}
 var SLIDES=[
-{e:'🎲',t:'Кость решает',d:'В каждом раунде судья бросает кость. Выпало число N.'},
+{e:'🎲',t:'Кость решает',d:'В каждом раунде кость бросают игроки. Выпало число N.'},
 {e:'🎧',t:'Листаем плейлисты',d:'Все N раз пролистывают свой плейлист в шаффле и ставят трек, на котором остановились.'},
-{e:'⚖️',t:'Судья выбирает',d:'Лучший трек получает балл. Судьи меняются по кругу, за себя голосовать нельзя.'},
+{e:'⚖️',t:'Судья выбирает',d:'Судья даёт балл одному игроку, тому, чей трек ему понравился больше всех. Судьи меняются по кругу.'},
 {e:'🃏',t:JK,d:''},
 {e:'🏆',t:'Кто победит?',d:'После всех раундов выигрывает тот, у кого больше очков. Ничья решается допраундом.'}
 ];
@@ -400,8 +400,8 @@ var n=calc();
 h+=dice(S.rolls,nw)+'<div class="res">'+((c==='sum2'||c==='plus2'||c==='minus2')?'Итого ':'Выпало ')+n+'<small>'+note()+how(n)+'</small></div>';
 }
 }else{
-var who=c==='thrower'?S.players[(j+1)%S.players.length].name:'';
-h+=dice(two?[6,6]:[6])+(c==='thrower'?'<div class="mu" style="text-align:center;margin-bottom:8px">Кость бросает '+esc(who)+', а не судья</div>':'')+'<button id="rb" onclick="roll()">🎲 '+(c==='thrower'?'Бросает '+esc(who):'Бросить кость')+'</button>';
+var who=c==='thrower'?S.players[j].name:'';
+h+=dice(two?[6,6]:[6])+(c==='thrower'?'<div class="mu" style="text-align:center;margin-bottom:8px">Кость бросает '+esc(who)+', а не игроки</div>':'')+'<button id="rb" onclick="roll()">🎲 '+(c==='thrower'?'Бросает '+esc(who):'Бросить кость')+'</button>';
 }
 h+='</div><div class="glass jd">'+av(S.players[j].name,j)+'<div><div class="l">Судья'+(S.tb?' допраунда':'')+'</div><div class="n">'+esc(S.players[j].name)+'</div></div></div>';
 if(S.card)h+='<div class="strip" style="--h:'+hc(S.card)+'" onclick="peek()"><b>'+S.card.e+'</b>'+S.card.t+'<em>показать</em></div>';
