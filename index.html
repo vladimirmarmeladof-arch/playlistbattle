@@ -114,6 +114,16 @@ h1.ttl .lbl .p{font-size:clamp(16px,6.2vw,29px);line-height:1.05;letter-spacing:
 .bk .bl{width:84%;padding:12px 8px 10px;line-height:1}
 .bk .bl .y{font-size:clamp(26px,10vw,42px);letter-spacing:-.03em}
 .bk .bl .p{font-size:clamp(12px,4.7vw,20px);letter-spacing:-.02em;margin-top:3px}
+.pill.sk{background:#ff4d3d;color:#fff;margin-bottom:14px}
+.tmh{margin:12px 0 0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+.av.tm{width:auto;display:flex}.av.tm svg{width:40px;height:40px;flex:none}.av.tm svg+svg{margin-left:-16px}
+.pl .av.tm{width:auto}.pl .av.tm svg{width:30px;height:30px}.pl .av.tm svg+svg{margin-left:-12px}
+.wmas.tm{display:flex;justify-content:center}.wmas.tm svg{width:calc(92% / var(--n,2));margin:0}
+
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:18px 16px calc(12px + env(safe-area-inset-bottom,0px));background:linear-gradient(rgba(130,179,230,0),var(--bg) 40%)}
+.dock button{display:block;max-width:448px;margin:0 auto}
+.mstrip{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}.mstrip .av{width:32px;height:32px}
+.nmt{margin-top:12px;padding-top:10px;border-top:1px solid var(--ln)}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@900&display=swap" rel="stylesheet">
 </head>
@@ -144,7 +154,7 @@ var CARDS2=[
 {e:'⬆️',t:'Плюс два',d:'К броску добавляем 2',id:'plus2'},
 {e:'⬇️',t:'Минус два',d:'Из броска вычитаем 2, но минимум 1',id:'minus2'},
 {e:'➡️',t:'Сосед справа',d:'Все листают плейлист соседа справа',id:'right'},
-{e:'⚖️',t:'Рука судьи',d:'Кость бросает судья, а не игроки',id:'thrower'},
+
 {e:'📜',t:'Без шаффла',d:'Листаем подряд, начиная с последнего добавленного',id:'noshuffle'},
 {e:'⚖️',t:'Плейлист судьи',d:'Все листают плейлист судьи',id:'judge'}
 ];
@@ -154,23 +164,26 @@ var PAL=['#ffb311','#ff5a8c','#82b3e6'],AVC=['#ffb311','#ff5a8c','#82b3e6','#faf
 CARDS.forEach(function(c,i){c.h=PAL[i%3]});
 function hc(c){return typeof c.h==='string'?c.h:PAL[0]}
 var SLIDES=[
-{e:'🎲',t:'Кость решает',d:'В каждом раунде кость бросают игроки. Выпало число N.'},
-{e:'🎧',t:'Листаем плейлисты',d:'Все N раз пролистывают свой плейлист в шаффле и ставят трек, на котором остановились.'},
-{e:'⚖️',t:'Судья выбирает',d:'Судья даёт балл одному игроку, тому, чей трек ему понравился больше всех. Судьи меняются по кругу.'},
-{e:'🃏',t:JK,d:''},
-{e:'🏆',t:'Кто победит?',d:'После всех раундов выигрывает тот, у кого больше очков. Ничья решается допраундом.'}
+{e:'🎲',t:'Кость решает',d:'Судья бросает кость, выпало N. Все листают плейлист N раз, ставят трек и рассказывают о нём.'},
+{e:'⚖️',t:'Судья выбирает',d:'Судья даёт балл лучшему треку.'},
+{e:'🃏',t:'Особые условия',d:'Со 2-го круга бывают модификаторы. Раз в несколько кругов подлый круг: худший трек теряет балл.'},
+{e:'🏆',t:'Кто победит?',d:'Больше очков, значит победа. Ничья решается допраундом. С 8 игроков играем командами.'}
 ];
-SLIDES[3].d='С 3-го раунда выпадают модификаторы. Одни задают тему трека, и кость не бросается. Другие меняют бросок кости. В длинной игре бывают раунды без модификатора. Их можно отключить в меню.';
 var KEY='playlist-dice-v2',CK='playlist-dice-cfg',S=null,screen='intro',sl=0;
 function jget(k){try{var v=localStorage.getItem(k);return v?JSON.parse(v):null}catch(e){return null}}
 function jset(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
-var CFG=jget(CK)||{rounds:8,count:3,names:['','',''],cards:true};
+var CFG=jget(CK)||{count:4,names:['','','',''],cards:true,circles:3};
 CFG.seeds=CFG.seeds||[];
+CFG.count=Math.min(18,Math.max(4,CFG.count||4));if(CFG.count===7)CFG.count=8;while(CFG.names.length<CFG.count)CFG.names.push('');
+CFG.circles=Math.max(2,CFG.circles||3);CFG.teamNames=CFG.teamNames||[];
+function plan(p){if(p<=6)return {teams:false,u:p,sizes:Array(p).fill(1)};var u=Math.min(6,Math.floor(p/2)),b=Math.floor(p/u),e=p%u,sz=[];for(var k=0;k<u;k++)sz.push(b+(k<e?1:0));return {teams:true,u:u,sizes:sz}}
 var saved=jget(KEY);
 if(saved&&saved.deck)saved.deck=saved.deck.filter(function(d){return CARDS.some(function(c){return c.t===d.t})});
 var TG=window.Telegram&&window.Telegram.WebApp;
 if(TG){try{TG.ready();TG.expand();TG.setHeaderColor&&TG.setHeaderColor('#82b3e6');TG.setBackgroundColor&&TG.setBackgroundColor('#82b3e6');TG.disableVerticalSwipes&&TG.disableVerticalSwipes()}catch(e){}}
 function hap(t){try{TG&&TG.HapticFeedback&&(t?TG.HapticFeedback.notificationOccurred(t):TG.HapticFeedback.impactOccurred('medium'))}catch(e){}}
+function tick(st){try{if(TG&&TG.HapticFeedback)TG.HapticFeedback.impactOccurred(st||'light');else if(navigator.vibrate)navigator.vibrate(st==='heavy'?80:25)}catch(e){}}
+var ROLL_TICKS=22; /* длительность броска: тиков по 75 мс, вибрация на каждом */
 function save(){jset(KEY,S)}
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
@@ -272,7 +285,8 @@ return sd!=null?sd:(i+1)*7919}
 function mascot(i){return mascotSVG(seedOf(i))}
 function reroll(i){ensureSeeds();CFG.seeds[i]=newSeed(CFG.seeds.filter(function(_,k){return k!==i}));jset(CK,CFG);hap();menu()}
 function avr(i){return '<span class="av" onclick="reroll('+i+')" style="cursor:pointer">'+mascot(i)+'</span>'}
-function av(name,i){return '<span class="av">'+mascot(i)+'</span>'}
+function seedsOf(i){return (S&&S.players&&screen!=='menu'&&screen!=='intro'&&S.players[i])?S.players[i].seeds:null}
+function av(name,i){var ss=seedsOf(i);return ss&&ss.length>1?'<span class="av tm">'+ss.map(function(sd){return mascotSVG(sd)}).join('')+'</span>':'<span class="av">'+mascot(i)+'</span>'}
 var PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
 function pips(n){var h='';for(var i=0;i<9;i++)h+='<span'+(PIPS[n].indexOf(i)>-1?' class="p"':'')+'></span>';return h}
 var $=document.getElementById('app');
@@ -291,35 +305,51 @@ function toMenu(){screen='menu';render()}
 function rules(){sl=0;screen='intro';render()}
 
 /* ---------- menu ---------- */
+var namesOpen=false;
+function rwd(n){var m=n%10,k=n%100;return (m===1&&k!==11)?'раунд':(m>=2&&m<=4&&(k<12||k>14))?'раунда':'раундов'}
 function menu(msg){
 ensureSeeds();
+var pn=plan(CFG.count),teams=pn.teams,units=pn.u;
+function prow(i){return '<div class="nm">'+avr(i)+'<input maxlength="16" placeholder="Игрок '+(i+1)+'" value="'+esc(CFG.names[i]||'')+'" oninput="CFG.names['+i+']=this.value;jset(CK,CFG)"></div>'}
 var h='<h1 class="ttl"><span class="lbl"><span class="y">БИТВА</span><span class="p">ПЛЕЙЛИСТОВ</span></span></h1>';
-h+='<div class="glass"><h2>Раунды</h2><div class="seg">'+[6,8,10,12].map(function(n){return '<button class="'+(n===CFG.rounds?'on':'')+'" onclick="CFG.rounds='+n+';jset(CK,CFG);menu()">'+n+'</button>'}).join('')+'</div></div>';
-h+='<div class="glass"><h2>Игроки</h2><div class="stp"><button class="ghost" onclick="cnt(-1)">−</button><b>'+CFG.count+'</b><button class="ghost" onclick="cnt(1)">+</button></div>';
-for(var i=0;i<CFG.count;i++)h+='<div class="nm">'+avr(i)+'<input maxlength="16" placeholder="Игрок '+(i+1)+'" value="'+esc(CFG.names[i]||'')+'" oninput="CFG.names['+i+']=this.value;jset(CK,CFG)"></div>';
-h+='<div class="mu" style="margin-top:8px">'+(CFG.count>0?'Нажми на маскота, чтобы собрать нового':'Добавь игроков кнопкой +')+'</div>';
+h+='<div class="glass"><h2>Круги</h2><div class="stp"><button class="ghost" '+(CFG.circles<=2?'disabled ':'')+'onclick="cntC(-1)">−</button><b>'+CFG.circles+'</b><button class="ghost" onclick="cntC(1)">+</button></div><div class="mu" style="text-align:center">'+(CFG.circles===2?'Быстрая игра: ':'')+units+' '+rwd(units)+' в круге, всего '+(units*CFG.circles)+'</div></div>';
+h+='<div class="glass"><h2>Игроки</h2><div class="stp"><button class="ghost" '+(CFG.count<=4?'disabled ':'')+'onclick="cnt(-1)">−</button><b>'+CFG.count+'</b><button class="ghost" '+(CFG.count>=18?'disabled ':'')+'onclick="cnt(1)">+</button></div>'+(teams?'<div class="mu" style="text-align:center">Команд: '+units+'</div>':'');
+h+='<div class="tg nmt" onclick="namesOpen=!namesOpen;menu()"><b>'+(teams?'Команды и имена':'Имена')+'</b><span class="mu">необязательно '+(namesOpen?'▲':'▼')+'</span></div>';
+if(namesOpen){var ix=0;if(teams){pn.sizes.forEach(function(sz,t){h+='<div class="tmh">Команда '+(t+1)+'</div><div class="nm"><input maxlength="20" placeholder="Название команды" value="'+esc(CFG.teamNames[t]||'')+'" oninput="CFG.teamNames['+t+']=this.value;jset(CK,CFG)"></div>';for(var m=0;m<sz;m++){h+=prow(ix);ix++}})}else{for(var i=0;i<CFG.count;i++)h+=prow(i)}}
+else{h+='<div class="mstrip">';for(var q=0;q<CFG.count;q++)h+=avr(q);h+='</div>'}
 h+='</div>';
-h+='<div class="glass tg" onclick="CFG.cards=!CFG.cards;jset(CK,CFG);menu()"><div><b>'+JK+'</b><div class="mu">'+(CFG.cards?'С 3-го раунда: тема трека или особый бросок кости':'Выключены: играем без особых условий')+'</div></div><div class="sw '+(CFG.cards?'on':'')+'"><i></i></div></div>';
+h+='<div class="glass tg" onclick="CFG.cards=!CFG.cards;jset(CK,CFG);menu()"><b>'+JK+'</b><div class="sw '+(CFG.cards?'on':'')+'"><i></i></div></div>';
 if(msg)h+='<div class="err">'+msg+'</div>';
-if(CFG.count<2)h+='<div class="err">Для игры нужно минимум 2 игрока</div>';
-h+='<button '+(CFG.count<2?'disabled ':'')+'onclick="start()">Начать игру</button>';
 if(saved&&saved.players)h+='<button class="ghost" onclick="S=saved;screen=\'game\';render()">Продолжить прошлую игру</button>';
 h+='<button class="lnk" onclick="rules()">Правила</button>';
+h+='<div style="height:92px"></div><div class="dock"><button '+(CFG.count<4?'disabled ':'')+'onclick="start()">Начать игру</button></div>';
 $.innerHTML=h;
 }
-function cnt(d){var n=CFG.count+d;if(n<0||n>10)return;CFG.count=n;while(CFG.names.length<n)CFG.names.push('');if(d>0)CFG.seeds[n-1]=newSeed(CFG.seeds.slice(0,n-1));CFG.seeds.length=n;jset(CK,CFG);menu()}
+function cnt(d){var c=CFG.count,n=c+d;if(n===7)n=d>0?8:6;if(n<4||n>18)return;CFG.count=n;while(CFG.names.length<n)CFG.names.push('');if(d>0){for(var k=c;k<n;k++)CFG.seeds[k]=newSeed(CFG.seeds.slice(0,k))}CFG.seeds.length=n;jset(CK,CFG);menu()}
+function cntC(d){var n=CFG.circles+d;if(n<2||n>99)return;CFG.circles=n;jset(CK,CFG);menu()}
+function pickSneakyC(c){
+if(c<=2)return [];
+var k=Math.ceil(c/4),cand=[],r=[],i;
+for(i=1;i<c;i++)cand.push(i);
+cand=shuffle(cand);
+cand.forEach(function(x){if(r.length<k&&r.every(function(y){return Math.abs(x-y)>1}))r.push(x)});
+return r}
 function start(){
-if(CFG.count<2)return;
+if(CFG.count<4)return;
 var names=[],i,n,k;
 for(i=0;i<CFG.count;i++){n=(CFG.names[i]||'').trim()||('Игрок '+(i+1));k=2;var b=n;while(names.indexOf(n)>-1)n=b+' '+(k++);names.push(n)}
-S={players:names.map(function(n,i){return {name:n,score:0,seed:CFG.seeds[i]}}),round:0,total:CFG.rounds,cards:CFG.cards,d1:shuffle(CARDS1),d2:shuffle(CARDS2),plain:0,ch:null,card:null,rolls:[],phase:'roll',tb:false,leaders:[],tbJudge:0,sel:[],guess:false,flipped:false};
+var pn=plan(CFG.count),pl=[],ix=0,used=[];
+if(pn.teams){pn.sizes.forEach(function(sz,t){var ms=names.slice(ix,ix+sz),sd=CFG.seeds.slice(ix,ix+sz);ix+=sz;var tn=((CFG.teamNames[t]||'').trim())||('Команда '+(t+1));var bn=tn,kk=2;while(used.indexOf(tn)>-1)tn=bn+' '+(kk++);used.push(tn);pl.push({name:tn,score:0,seed:sd[0],seeds:sd,members:ms})})}else pl=names.map(function(n,i){return {name:n,score:0,seed:CFG.seeds[i]}});
+S={players:pl,round:0,total:pl.length*CFG.circles,units:pl.length,circles:CFG.circles,sneakyC:pickSneakyC(CFG.circles),sn:false,cards:CFG.cards,d1:shuffle(CARDS1),d2:shuffle(CARDS2),plain:0,ch:null,card:null,rolls:[],phase:'roll',tb:false,leaders:[],tbJudge:0,sel:[],guess:false,flipped:false};
 screen='game';newRound();
 }
 
 /* ---------- game ---------- */
 function newRound(){
 S.rolls=[];S.sel=[];S.guess=false;S.card=null;S.flipped=false;S.ch=null;
-if(S.cards&&S.round>=2&&!S.tb){
+S.sn=!!(S.units&&S.sneakyC&&!S.tb&&S.sneakyC.indexOf(Math.floor(S.round/S.units))>-1);
+var el=(S.units?Math.floor(S.round/S.units)>=1:S.round>=2);
+if(S.cards&&el&&!S.tb&&!S.sn){
 var want=true;
 if(S.total>=8&&(S.plain||0)<2)want=Math.random()<0.5;
 if(want){
@@ -328,8 +358,8 @@ if(!S[key]||!S[key].length)S[key]=shuffle(src);
 S.card=S[key].pop();
 }
 }
-S.plain=S.card?0:(S.plain||0)+1;
-S.phase=S.card?'card':'roll';
+if(!S.sn&&el)S.plain=S.card?0:(S.plain||0)+1;
+S.phase=S.card?'card':(S.sn&&S.round%S.units===0?'sneak':'roll');
 save();render();window.scrollTo(0,0);
 }
 function themed(){return !!(S.card&&S.card.k===1)}
@@ -354,6 +384,9 @@ if(c==='judge')return 'Листаем плейлист судьи '+t;
 if(c==='noshuffle')return 'Листаем подряд, с последнего добавленного: '+t;
 return 'Все листают плейлист '+t}
 function choose(v){S.ch=v;hap();save();game()}
+
+
+
 function judgeIdx(){return S.tb?S.tbJudge:S.round%S.players.length}
 function cid(){return S.card&&S.card.id?S.card.id:''}
 function cands(){var j=judgeIdx(),r=[];S.players.forEach(function(p,i){if(i!==j&&(!S.tb||S.leaders.indexOf(i)>-1))r.push(i)});return r}
@@ -361,7 +394,10 @@ function cardHTML(c,fl,click){
 return '<div class="c3'+(fl?' fl':'')+'" id="c3" style="--h:'+hc(c)+'"'+(click?' onclick="'+click+'"':'')+'><div class="ci"><div class="bk"><span class="bl"><span class="y">БИТВА</span><span class="p">ПЛЕЙЛИСТОВ</span></span></div><div class="fc"><span class="cn tl">'+c.e+'</span><span class="cn br">'+c.e+'</span><div class="art">'+c.e+'</div><div class="ct">'+c.t+'</div><div class="cd">'+c.d+'</div></div></div></div>';
 }
 function topbar(){
-return '<div class="top"><span class="pill">'+(S.tb?'Допраунд':'Раунд '+(S.round+1)+' из '+S.total)+'</span><span><button class="ghost sm" onclick="sheet()">Очки</button><button class="ghost sm" onclick="ask()">Выйти</button></span></div>';
+return '<div class="top"><span class="pill">'+(S.tb?'Допраунд':(S.units?'Круг '+(Math.floor(S.round/S.units)+1)+' из '+S.circles+' · '+(S.round%S.units+1)+'/'+S.units:'Раунд '+(S.round+1)+' из '+S.total))+'</span><span><button class="ghost sm" onclick="sheet()">Очки</button><button class="ghost sm" onclick="ask()">Выйти</button></span></div>';
+}
+function sneakScreen(){
+$.innerHTML='<div class="rnd">'+topbar()+'<div class="stage"><div class="ill" style="background:#ff4d3d">😈</div><div class="res" style="margin-top:22px">Подлый круг<small>В этом круге судья выбирает трек, который понравился меньше всех. Его автор теряет балл.</small></div><button style="margin-top:22px" onclick="goRoll()">К броску кости</button></div></div>';
 }
 function cardScreen(){
 var j=S.players[judgeIdx()].name;
@@ -385,7 +421,8 @@ return '<div class="dice">'+vals.map(function(v){return '<div class="die'+(vals.
 function game(){
 if(S.phase==='final')return final();
 if(S.phase==='card')return cardScreen();
-var j=judgeIdx(),c=cid(),th=themed(),rolled=S.phase==='pick',two=nDice()===2,h='<div class="rnd">'+topbar()+'<div class="stage">';
+if(S.phase==='sneak')return sneakScreen();
+var j=judgeIdx(),c=cid(),th=themed(),rolled=S.phase==='pick',two=nDice()===2,h='<div class="rnd">'+topbar()+'<div class="stage">'+(S.sn?'<div class="pill sk">😈 Подлый круг: ищем худший трек</div>':'');
 var locked=false;
 if(th){
 h+='<div class="ill">'+S.card.e+'</div><div class="res">'+S.card.t+'<small>'+S.card.d+'. Кость не бросаем</small></div>';
@@ -400,12 +437,12 @@ var n=calc();
 h+=dice(S.rolls,nw)+'<div class="res">'+((c==='sum2'||c==='plus2'||c==='minus2')?'Итого ':'Выпало ')+n+'<small>'+note()+how(n)+'</small></div>';
 }
 }else{
-var who=c==='thrower'?S.players[j].name:'';
-h+=dice(two?[6,6]:[6])+(c==='thrower'?'<div class="mu" style="text-align:center;margin-bottom:8px">Кость бросает '+esc(who)+', а не игроки</div>':'')+'<button id="rb" onclick="roll()">🎲 '+(c==='thrower'?'Бросает '+esc(who):'Бросить кость')+'</button>';
+
+h+=dice(two?[6,6]:[6])+'<button id="rb" onclick="roll()">🎲 Бросить кость</button>';
 }
-h+='</div><div class="glass jd">'+av(S.players[j].name,j)+'<div><div class="l">Судья'+(S.tb?' допраунда':'')+'</div><div class="n">'+esc(S.players[j].name)+'</div></div></div>';
+h+='</div><div class="glass jd">'+av(S.players[j].name,j)+'<div><div class="l">Судья'+(S.tb?' допраунда':'')+'</div><div class="n">'+esc(S.players[j].name)+'</div>'+(S.players[j].members?'<div class="mu">'+esc(S.players[j].members.join(', '))+'</div>':'')+'</div></div>';
 if(S.card)h+='<div class="strip" style="--h:'+hc(S.card)+'" onclick="peek()"><b>'+S.card.e+'</b>'+S.card.t+'<em>показать</em></div>';
-h+='<div class="glass vote '+((rolled||th)&&!locked?'':'lock')+'"><h2>'+((rolled||th)&&!locked?'Лучший трек у кого?':(th?'':'Голосование после броска'))+'</h2>';
+h+='<div class="glass vote '+((rolled||th)&&!locked?'':'lock')+'"><h2>'+((rolled||th)&&!locked?(S.sn?'Худший трек у кого? (−1 балл)':'Лучший трек у кого?'):(th?'':'Голосование после броска'))+'</h2>';
 if(cid()==='guess')h+='<div class="chk '+(S.guess?'on':'')+'" onclick="S.guess=!S.guess;game()">'+(S.guess?'✅':'⬜')+' Судья угадал владельца (+1 судье)</div>';
 h+='<div class="grid">';
 cands().forEach(function(i){h+='<button class="pl '+(S.sel.indexOf(i)>-1?'on':'')+'" onclick="pick('+i+')">'+av(S.players[i].name,i)+'<span>'+esc(S.players[i].name)+'</span></button>'});
@@ -416,16 +453,16 @@ $.innerHTML=h+'</div></div>';
 function roll(){
 var times=nDice(),b=document.getElementById('rb');b.disabled=true;
 var ds=document.querySelectorAll('.die');ds.forEach(function(d){d.classList.add('shake')});var k=0;
-var iv=setInterval(function(){ds.forEach(function(d){d.innerHTML=pips(1+Math.floor(Math.random()*6))});k++;
-if(k>13){clearInterval(iv);hap();S.rolls=[];for(var i=0;i<times;i++)S.rolls.push(1+Math.floor(Math.random()*6));S.phase='pick';save();render()}},75);
+var iv=setInterval(function(){ds.forEach(function(d){d.innerHTML=pips(1+Math.floor(Math.random()*6))});tick('light');k++;
+if(k>ROLL_TICKS){clearInterval(iv);tick('heavy');S.rolls=[];for(var i=0;i<times;i++)S.rolls.push(1+Math.floor(Math.random()*6));S.phase='pick';save();render()}},75);
 }
 function pick(i){
 if(cid()==='split'){var k=S.sel.indexOf(i);if(k>-1)S.sel.splice(k,1);else if(S.sel.length<2)S.sel.push(i);return game()}
-award([i],cid()==='dpts'?2:1);
+award([i],S.sn?-1:(cid()==='dpts'?2:1));
 }
 function award(ids,pts){
-hap('success');ids.forEach(function(i){S.players[i].score+=pts});
-var m='🏅 '+ids.map(function(i){return S.players[i].name}).join(' и ')+' +'+fmt(pts);
+hap(S.sn?'warning':'success');ids.forEach(function(i){S.players[i].score+=pts});
+var m=(S.sn?'😈 ':'🏅 ')+ids.map(function(i){return S.players[i].name}).join(' и ')+(S.sn?' −1':' +'+fmt(pts));
 if(cid()==='guess'&&S.guess){S.players[judgeIdx()].score+=1;m+=' · судья +1'}
 toast(m);
 if(S.tb||S.round+1>=S.total){S.phase='final'}else{S.round++;return newRound()}
@@ -436,7 +473,7 @@ function tiebreak(){
 var L=leaders(),n=S.players.length,j=-1;
 for(var i=0;i<n;i++){if(L.indexOf(i)<0){j=i;break}}
 if(j<0)j=S.round%n;
-S.tb=true;S.leaders=L;S.tbJudge=j;S.round++;S.card=null;S.phase='roll';S.rolls=[];S.sel=[];save();render();
+S.tb=true;S.sn=false;S.leaders=L;S.tbJudge=j;S.round++;S.card=null;S.phase='roll';S.rolls=[];S.sel=[];save();render();
 }
 function reset(){S=null;try{localStorage.removeItem(KEY)}catch(e){}saved=null;screen='menu';render()}
 function ask(){var f=function(ok){if(ok)reset()};if(TG&&TG.showConfirm)TG.showConfirm('Закончить игру?',f);else f(confirm('Закончить игру?'))}
@@ -444,7 +481,7 @@ function board(j){
 var max=Math.max(1,Math.max.apply(null,S.players.map(function(p){return p.score})));
 var h='<h2 style="margin-top:12px">Очки</h2>';
 S.players.map(function(p,i){return {p:p,i:i}}).sort(function(a,b){return b.p.score-a.p.score}).forEach(function(o){
-h+='<div class="row">'+av(o.p.name,o.i)+'<div class="b">'+esc(o.p.name)+(j&&o.i===judgeIdx()?' ⚖️':'')+'<div class="bar"><i style="width:'+(o.p.score/max*100)+'%"></i></div></div><b>'+fmt(o.p.score)+'</b></div>'});
+h+='<div class="row">'+av(o.p.name,o.i)+'<div class="b">'+esc(o.p.name)+(j&&o.i===judgeIdx()?' ⚖️':'')+'<div class="bar"><i style="width:'+(Math.max(0,o.p.score)/max*100)+'%"></i></div></div><b>'+fmt(o.p.score)+'</b></div>'});
 return h;
 }
 function sheet(){
@@ -456,9 +493,10 @@ var e=['🎉','🎶','✨','🎧','🎵','💜'],h='';
 for(var i=0;i<26;i++)h+='<span class="cft" style="left:'+Math.random()*100+'%;animation-duration:'+(2.5+Math.random()*2.5)+'s;animation-delay:'+Math.random()*1.2+'s">'+e[i%e.length]+'</span>';
 var d=document.createElement('div');d.innerHTML=h;document.body.appendChild(d);setTimeout(function(){d.remove()},7000);
 }
+function winMas(i){var p=S.players[i],t=p.seeds&&p.seeds.length>1;return '<div class="wmas'+(t?' tm':'')+'"'+(t?' style="--n:'+p.seeds.length+'"':'')+'>'+(t?p.seeds.map(function(sd){return mascotSVG(sd)}).join(''):mascot(i))+'</div>'}
 function final(){
 var L=leaders(),h='<h1>Итоги</h1>';
-if(L.length===1){var i=L[0];h+='<div class="wcard"><span class="wbadge">'+(i+1)+'</span><div class="wtop">Победитель!</div><div class="wmas">'+mascot(i)+'</div><div class="wname">'+esc(S.players[i].name)+' 👑</div></div><div class="mu" style="text-align:center;color:var(--ink)">'+fmt(S.players[i].score)+' очк.</div><div class="glass">';setTimeout(confetti,200)}
+if(L.length===1){var i=L[0];h+='<div class="wcard"><span class="wbadge">'+(i+1)+'</span><div class="wtop">Победитель!</div>'+winMas(i)+'<div class="wname">'+esc(S.players[i].name)+' 👑</div></div><div class="mu" style="text-align:center;color:var(--ink)">'+fmt(S.players[i].score)+' очк.</div><div class="glass">';setTimeout(confetti,200)}
 else h+='<div class="glass"><div class="trophy">🤝</div><div class="big">Ничья</div><div class="mu" style="text-align:center">'+L.map(function(i){return esc(S.players[i].name)}).join(', ')+'</div><button onclick="tiebreak()">Дополнительный раунд</button></div><div class="glass">';
 h+=board(false)+'</div><button class="ghost" onclick="reset()">В меню</button>';
 $.innerHTML=h;
