@@ -124,6 +124,20 @@ h1.ttl .lbl .p{font-size:clamp(16px,6.2vw,29px);line-height:1.05;letter-spacing:
 .dock button{display:block;max-width:448px;margin:0 auto}
 .mstrip{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}.mstrip .av{width:32px;height:32px}
 .nmt{margin-top:12px;padding-top:10px;border-top:1px solid var(--ln)}
+
+/* --- треки --- */
+.tw{width:100%;max-width:320px}.tw button{max-width:none}
+.cv{position:relative;display:grid;place-items:center;background:var(--pn2);border:3px solid #111;border-radius:16px;overflow:hidden;aspect-ratio:1;font-size:40px;line-height:1;flex:none}
+.cv img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.trk{display:flex;align-items:center;gap:12px;background:var(--pn);color:var(--tx);border:3px solid #111;border-radius:16px;padding:10px;margin:12px 0 0;width:100%}
+.trk .cv{width:72px;border-radius:12px}
+.trk div{min-width:0;overflow-wrap:anywhere}.trk b{display:block;font-size:17px;line-height:1.2}.trk .a{display:block;color:var(--mu);font-size:14px;margin-top:2px}
+.wname.tr{border-radius:20px;line-height:1.2;overflow-wrap:anywhere}.wname.tr .ar{font-size:14px;font-weight:600;opacity:.7;margin-top:2px}
+.hrow{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--ln)}
+.hrow .cv{width:52px;font-size:22px;border-width:2px;border-radius:12px}
+.hrow>div:last-child{flex:1;min-width:0;overflow-wrap:anywhere}
+.hw{font-size:13px;font-weight:700;margin-top:3px}.hw.ps{color:var(--ye)}.hw.ng{color:#ff7a6e}.hw i{font-style:normal;color:var(--mu);font-weight:400}
+.hrow a{color:inherit}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@900&display=swap" rel="stylesheet">
 </head>
@@ -422,6 +436,8 @@ function game(){
 if(S.phase==='final')return final();
 if(S.phase==='card')return cardScreen();
 if(S.phase==='sneak')return sneakScreen();
+if(S.phase==='track')return trackScreen();
+if(S.phase==='res')return resScreen();
 var j=judgeIdx(),c=cid(),th=themed(),rolled=S.phase==='pick',two=nDice()===2,h='<div class="rnd">'+topbar()+'<div class="stage">'+(S.sn?'<div class="pill sk">😈 Подлый круг: ищем худший трек</div>':'');
 var locked=false;
 if(th){
@@ -458,16 +474,118 @@ if(k>ROLL_TICKS){clearInterval(iv);tick('heavy');S.rolls=[];for(var i=0;i<times;
 }
 function pick(i){
 if(cid()==='split'){var k=S.sel.indexOf(i);if(k>-1)S.sel.splice(k,1);else if(S.sel.length<2)S.sel.push(i);return game()}
-award([i],S.sn?-1:(cid()==='dpts'?2:1));
+askTrack([i],S.sn?-1:(cid()==='dpts'?2:1));
 }
-function award(ids,pts){
-hap(S.sn?'warning':'success');ids.forEach(function(i){S.players[i].score+=pts});
-var m=(S.sn?'😈 ':'🏅 ')+ids.map(function(i){return S.players[i].name}).join(' и ')+(S.sn?' −1':' +'+fmt(pts));
-if(cid()==='guess'&&S.guess){S.players[judgeIdx()].score+=1;m+=' · судья +1'}
-toast(m);
-if(S.tb||S.round+1>=S.total){S.phase='final'}else{S.round++;return newRound()}
-save();render();
+/* ---------- треки ---------- */
+var TI=null,TV='',TBUSY=false,TERR='';
+function who(ids){return ids.map(function(i){return esc(S.players[i].name)}).join(' и ')}
+function askTrack(ids,pts){S.pend={ids:ids,pts:pts};S.phase='track';TI=null;TV='';TERR='';TBUSY=false;save();render();window.scrollTo(0,0)}
+function award(ids,pts){commit(ids,pts,null)}
+function commit(ids,pts,tr){
+hap(S.sn?'warning':'success');
+ids.forEach(function(i){S.players[i].score+=pts});
+if(cid()==='guess'&&S.guess)S.players[judgeIdx()].score+=1;
+S.hist=S.hist||[];
+S.hist.push({r:S.round,c:S.units?Math.floor(S.round/S.units)+1:0,n:S.units?S.round%S.units+1:S.round+1,tb:!!S.tb,sn:!!S.sn,wi:ids.slice(),w:ids.map(function(i){return S.players[i].name}),pts:pts,t:tr||null});
+S.pend=null;S.phase='res';save();render();window.scrollTo(0,0);
 }
+function after(){
+if(S.tb||S.round+1>=S.total){S.phase='final';save();render()}else{S.round++;newRound()}
+}
+function saveT(){if(TI)commit(S.pend.ids,S.pend.pts,{title:TI.title,artist:TI.artist,cover:TI.cover,url:TI.url})}
+function skipT(){commit(S.pend.ids,S.pend.pts,null)}
+function cvh(t,cls){return '<div class="cv'+(cls?' '+cls:'')+'">🎵'+(t&&t.cover?'<img src="'+esc(t.cover)+'" alt="" referrerpolicy="no-referrer" onerror="this.remove()">':'')+'</div>'}
+function trackScreen(){
+var p=S.pend,neg=p.pts<0;
+var h='<div class="rnd">'+topbar()+'<div class="stage" style="justify-content:flex-start;padding-top:18px"><div class="tw">';
+h+='<div style="text-align:center"><span class="pill'+(neg?' sk':'')+'">'+(neg?'😈 ':'🏅 ')+who(p.ids)+' '+(neg?'−1':'+'+fmt(p.pts))+'</span></div>';
+h+='<div class="res" style="margin:6px 0 14px">Что за трек?<small>Вставьте ссылку из Spotify, Apple Music или Яндекс Музыки. Или впишите «Артист — Трек»</small></div>';
+h+='<div class="nm"><input id="tin" value="'+esc(TV)+'" placeholder="Ссылка или Артист — Трек" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" oninput="TV=this.value" onkeydown="if(event.key===\'Enter\')findT()"><button class="sm" onclick="pasteT()">Вставить</button></div>';
+h+='<button onclick="findT()" '+(TBUSY?'disabled':'')+'>'+(TBUSY?'Ищу…':'Найти')+'</button>';
+if(TERR)h+='<div class="err">'+esc(TERR)+'</div>';
+if(TI){h+='<div class="trk">'+cvh(TI)+'<div><b>'+esc(TI.title)+'</b><span class="a">'+(TI.artist?esc(TI.artist):'артист не указан')+'</span></div></div><button onclick="saveT()">Записать этот трек</button>'}
+h+='<button class="ghost" onclick="skipT()">Пропустить</button></div></div></div>';
+$.innerHTML=h;
+}
+function resScreen(){
+var e=S.hist[S.hist.length-1],last=S.tb||S.round+1>=S.total,neg=e.pts<0,t=e.t;
+var sg=(neg?'−':'+')+fmt(Math.abs(e.pts));
+var h='<div class="rnd">'+topbar()+'<div class="stage"><div class="wcard" style="width:100%;max-width:320px;'+(neg?'background:#ff4d3d':'')+'">';
+h+='<span class="wbadge" style="'+(sg.length>2?'font-size:13px;':'')+(neg?'background:#111':'')+'">'+sg+'</span>';
+h+='<div class="wtop">'+(neg?'Худший трек':'Лучший трек')+'</div>';
+h+='<div style="width:min(100%,230px);margin:12px auto">'+cvh(t)+'</div>';
+h+=t?'<div class="wname tr"><div>'+esc(t.title)+'</div>'+(t.artist?'<div class="ar">'+esc(t.artist)+'</div>':'')+'</div>':'<div class="wname tr">Трек не указан</div>';
+h+='</div><div class="glass jd" style="width:100%;max-width:320px;margin:14px 0 0">'+av(S.players[e.wi[0]].name,e.wi[0])+'<div><div class="l">'+(neg?'Теряет балл':'Получает балл')+'</div><div class="n">'+e.w.map(esc).join(' и ')+'</div></div></div>';
+h+='<button style="margin-top:14px" onclick="after()">'+(last?'К итогам':'Дальше')+'</button></div></div>';
+$.innerHTML=h;
+}
+function hist(){
+closeOv();
+var H=S.hist||[],h='<h2 style="margin-top:12px">История раундов</h2>';
+if(!H.length)h+='<div class="mu">Пока пусто</div>';
+H.forEach(function(e){
+var t=e.t,neg=e.pts<0,lab=e.tb?'Допраунд':(e.c?'Круг '+e.c+', раунд '+e.n:'Раунд '+e.n);
+var ttl=t?(t.url?'<a href="'+esc(t.url)+'" target="_blank" rel="noopener">'+esc(t.title)+'</a>':esc(t.title)):'Трек не указан';
+h+='<div class="hrow">'+cvh(t)+'<div><b>'+ttl+'</b>'+(t&&t.artist?'<div class="mu">'+esc(t.artist)+'</div>':'')+'<div class="hw '+(neg?'ng':'ps')+'">'+(neg?'😈 ':'🏅 ')+e.w.map(esc).join(' и ')+' '+(neg?'−':'+')+fmt(Math.abs(e.pts))+' <i>· '+lab+'</i></div></div></div>';
+});
+var o=document.createElement('div');o.className='ov';o.onclick=closeOv;
+o.innerHTML='<div class="sh" onclick="event.stopPropagation()">'+h+'<button class="ghost" onclick="closeOv()">Закрыть</button></div>';document.body.appendChild(o);
+}
+
+/* разбор ссылок */
+function urlOf(v){var m=v.match(/https?:\/\/[^\s]+/i);if(!m)return null;try{return new URL(m[0])}catch(e){return null}}
+function manual(v){var m=v.split(/\s*[—–]\s*|\s+-\s+/);if(m.length>1)return {artist:m[0].trim(),title:m.slice(1).join(' — ').trim(),cover:'',url:''};return {artist:'',title:v,cover:'',url:''}}
+function jsonp(url){return new Promise(function(ok,no){
+var cb='jp'+Date.now()+Math.floor(Math.random()*1e5),sc=document.createElement('script');
+function clean(){clearTimeout(tm);delete window[cb];sc.remove()}
+var tm=setTimeout(function(){clean();no(new Error('Сервис не ответил. Проверьте интернет или впишите трек вручную'))},9000);
+window[cb]=function(d){clean();ok(d)};
+sc.onerror=function(){clean();no(new Error('Не удалось связаться с сервисом. Впишите трек вручную'))};
+sc.src=url+'&callback='+cb;document.head.appendChild(sc)})}
+function fetchT(url){var c=window.AbortController?new AbortController():null,tm=setTimeout(function(){c&&c.abort()},9000);
+return fetch(url,c?{signal:c.signal}:{}).then(function(r){clearTimeout(tm);return r},function(e){clearTimeout(tm);throw e})}
+function look(id,cc){return jsonp('https://itunes.apple.com/lookup?id='+encodeURIComponent(id)+'&country='+cc).then(function(d){return d&&d.results&&d.results[0]})}
+function apple(u){
+var id=u.searchParams.get('i');
+if(!id){var m=u.pathname.match(/\/song\/(?:[^\/]+\/)?(\d+)/);id=m&&m[1]}
+if(!id)return Promise.reject(new Error('Нужна ссылка на трек, а не на альбом. В Apple Music нажмите «Поделиться» у песни'));
+var cc=u.pathname.split('/')[1]||'';cc=/^[a-z]{2}$/i.test(cc)?cc:'ru';
+return look(id,cc).then(function(r){return r||(cc!=='us'?look(id,'us'):null)}).then(function(r){
+if(!r||!r.trackName)throw new Error('Трек не найден. Проверьте ссылку или впишите вручную');
+return {title:r.trackName,artist:r.artistName||'',cover:(r.artworkUrl100||'').replace(/\d+x\d+bb/,'600x600bb'),url:u.href}})}
+function spot(u){return fetchT('https://open.spotify.com/oembed?url='+encodeURIComponent(u.href)).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){
+if(!d||!d.title)throw 0;return {title:d.title,artist:'',cover:d.thumbnail_url||'',url:u.href}})}
+function odesli(u){
+var bad=new Error('Не удалось получить трек по ссылке. Впишите «Артист — Трек» вручную');
+return fetchT('https://api.song.link/v1-alpha.1/links?userCountry=RU&url='+encodeURIComponent(u.href)).then(function(r){
+if(r.status===429)throw new Error('Слишком много запросов. Подождите минуту или впишите трек вручную');
+if(!r.ok)throw bad;return r.json()}).then(function(d){
+var e=d.entitiesByUniqueId&&d.entitiesByUniqueId[d.entityUniqueId];
+if(!e||!e.title)throw bad;
+if(e.type&&e.type!=='song')throw new Error('Нужна ссылка на трек, а не на альбом или плейлист');
+return {title:e.title,artist:e.artistName||'',cover:e.thumbnailUrl||'',url:u.href}
+}).catch(function(err){
+if(/spotify\.com$/.test(u.hostname)&&err!==bad&&!/запросов|альбом/.test(err.message||''))return spot(u).catch(function(){throw bad});
+if(/spotify\.com$/.test(u.hostname)&&err===bad)return spot(u).catch(function(){throw bad});
+throw (err&&err.message&&err.name==='Error')?err:bad})}
+function resolveU(u){
+var h=u.hostname.replace(/^www\./,'');
+if(/^(music|itunes)\.apple\.com$/.test(h))return apple(u);
+if(/^(spotify\.link|vk\.cc|vk\.me|clck\.ru|ya\.cc)$/.test(h))return Promise.reject(new Error('Это короткая ссылка. Откройте её и скопируйте полную или впишите трек вручную'));
+if(/(^|\.)vk\.(com|ru)$/.test(h))return Promise.reject(new Error('VK пока не поддерживается. Впишите «Артист — Трек» вручную'));
+return odesli(u)}
+function findT(){
+var v=(TV||'').trim();if(!v||TBUSY)return;
+TERR='';TI=null;var u=urlOf(v);
+if(!u){TI=manual(v);render();return}
+TBUSY=true;render();
+resolveU(u).then(function(t){TI=t;TBUSY=false;render()},function(e){TBUSY=false;TERR=(e&&e.message)||'Не удалось получить трек';render()});
+}
+function pasteT(){
+var fail=function(){toast('Нажмите на поле и выберите «Вставить»')};
+try{navigator.clipboard.readText().then(function(t){TV=t||'';TERR='';render();if(urlOf(TV))findT()},fail)}catch(e){fail()}
+}
+
 function leaders(){var m=Math.max.apply(null,S.players.map(function(p){return p.score}));var r=[];S.players.forEach(function(p,i){if(p.score===m)r.push(i)});return r}
 function tiebreak(){
 var L=leaders(),n=S.players.length,j=-1;
@@ -486,7 +604,7 @@ return h;
 }
 function sheet(){
 var o=document.createElement('div');o.className='ov';o.onclick=closeOv;
-o.innerHTML='<div class="sh" onclick="event.stopPropagation()">'+board(true)+'<button class="ghost" onclick="closeOv()">Закрыть</button></div>';document.body.appendChild(o);
+o.innerHTML='<div class="sh" onclick="event.stopPropagation()">'+board(true)+((S.hist&&S.hist.length)?'<button onclick="hist()">История раундов</button>':'')+'<button class="ghost" onclick="closeOv()">Закрыть</button></div>';document.body.appendChild(o);
 }
 function confetti(){
 var e=['🎉','🎶','✨','🎧','🎵','💜'],h='';
@@ -498,7 +616,7 @@ function final(){
 var L=leaders(),h='<h1>Итоги</h1>';
 if(L.length===1){var i=L[0];h+='<div class="wcard"><span class="wbadge">'+(i+1)+'</span><div class="wtop">Победитель!</div>'+winMas(i)+'<div class="wname">'+esc(S.players[i].name)+' 👑</div></div><div class="mu" style="text-align:center;color:var(--ink)">'+fmt(S.players[i].score)+' очк.</div><div class="glass">';setTimeout(confetti,200)}
 else h+='<div class="glass"><div class="trophy">🤝</div><div class="big">Ничья</div><div class="mu" style="text-align:center">'+L.map(function(i){return esc(S.players[i].name)}).join(', ')+'</div><button onclick="tiebreak()">Дополнительный раунд</button></div><div class="glass">';
-h+=board(false)+'</div><button class="ghost" onclick="reset()">В меню</button>';
+h+=board(false)+'</div>'+((S.hist&&S.hist.length)?'<button onclick="hist()">История раундов</button>':'')+'<button class="ghost" onclick="reset()">В меню</button>';
 $.innerHTML=h;
 }
 function draw(){
