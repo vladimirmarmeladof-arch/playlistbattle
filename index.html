@@ -55,6 +55,7 @@ button:disabled{opacity:.4}
 .die.sm{width:98px;height:98px;padding:13px;border-radius:20px;box-shadow:5px 5px 0 var(--pn)}
 .die.win{box-shadow:0 0 0 4px var(--ye),6px 6px 0 4px var(--pn)}
 .die span{display:grid;place-items:center}.die span.p:after{content:"";width:21px;height:21px;border-radius:50%;background:var(--pn)}.die.sm span.p:after{width:16px;height:16px}
+.die.pk{cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 0 0 4px var(--ye),5px 5px 0 4px var(--pn);transition:transform .12s}.die.pk:active{transform:scale(.92)}
 .die.shake{animation:shake .5s infinite}
 @keyframes shake{0%,100%{transform:rotate(-8deg) translateY(0)}50%{transform:rotate(10deg) translateY(-10px)}}
 .res{text-align:center;font-size:26px;font-weight:900;font-style:italic;color:var(--ink)}.res small{display:block;font-size:15px;color:var(--ink);opacity:.75;font-weight:500;font-style:normal;margin-top:2px}
@@ -431,9 +432,9 @@ function peek(){
 var o=document.createElement('div');o.className='ov';o.onclick=closeOv;
 o.innerHTML=cardHTML(S.card,true,'');document.body.appendChild(o);
 }
-function dice(vals,nowin){
+function dice(vals,nowin,pk){
 var mx=Math.max.apply(null,vals);
-return '<div class="dice">'+vals.map(function(v){return '<div class="die'+(vals.length>1?' sm':'')+(vals.length>1&&!nowin&&v===mx?' win':'')+'">'+pips(v)+'</div>'}).join('')+'</div>';
+return '<div class="dice">'+vals.map(function(v){return '<div class="die'+(vals.length>1?' sm':'')+(vals.length>1&&!nowin&&v===mx?' win':'')+(pk?' pk':'')+'"'+(pk?' onclick="choose('+v+')"':'')+'>'+pips(v)+'</div>'}).join('')+'</div>';
 }
 function game(){
 if(S.phase==='final')return final();
@@ -449,8 +450,7 @@ h+='<div class="ill">'+S.card.e+'</div><div class="res">'+S.card.t+'<small>'+S.c
 var nw=(c==='sum2'||c==='choose2');
 if(c==='choose2'&&S.ch==null){
 locked=true;
-h+=dice(S.rolls,true)+'<div class="res">Судья выбирает кость<small>Какое число листаем?</small></div>';
-S.rolls.forEach(function(v){h+='<button onclick="choose('+v+')">Листаем '+v+'</button>'});
+h+=dice(S.rolls,true,true)+'<div class="res">Судья выбирает кость<small>Нажмите на кость, которую листаем</small></div>';
 }else{
 var n=calc();
 h+=dice(S.rolls,nw)+'<div class="res">'+((c==='sum2'||c==='plus2'||c==='minus2')?'Итого ':'Выпало ')+n+'<small>'+note()+how(n)+'</small></div>';
