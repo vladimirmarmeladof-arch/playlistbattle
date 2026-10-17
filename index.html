@@ -192,7 +192,7 @@ function jget(k){try{var v=localStorage.getItem(k);return v?JSON.parse(v):null}c
 function jset(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 var CFG=jget(CK)||{count:4,names:['','','',''],cards:true,circles:3};
 CFG.seeds=CFG.seeds||[];
-CFG.count=Math.min(18,Math.max(4,CFG.count||4));if(CFG.count===7)CFG.count=8;while(CFG.names.length<CFG.count)CFG.names.push('');
+CFG.count=Math.min(18,Math.max(3,CFG.count||4));if(CFG.count===7)CFG.count=8;while(CFG.names.length<CFG.count)CFG.names.push('');
 CFG.circles=Math.max(2,CFG.circles||3);CFG.teamNames=CFG.teamNames||[];
 function plan(p){if(p<=6)return {teams:false,u:p,sizes:Array(p).fill(1)};var u=Math.min(6,Math.floor(p/2)),b=Math.floor(p/u),e=p%u,sz=[];for(var k=0;k<u;k++)sz.push(b+(k<e?1:0));return {teams:true,u:u,sizes:sz}}
 var saved=jget(KEY);
@@ -331,7 +331,7 @@ var pn=plan(CFG.count),teams=pn.teams,units=pn.u;
 function prow(i){return '<div class="nm">'+avr(i)+'<input maxlength="16" placeholder="Игрок '+(i+1)+'" value="'+esc(CFG.names[i]||'')+'" oninput="CFG.names['+i+']=this.value;jset(CK,CFG)"></div>'}
 var h='<h1 class="ttl"><span class="lbl"><span class="y">БИТВА</span><span class="p">ПЛЕЙЛИСТОВ</span></span></h1>';
 h+='<div class="glass"><h2>Круги</h2><div class="stp"><button class="ghost" '+(CFG.circles<=2?'disabled ':'')+'onclick="cntC(-1)">−</button><b>'+CFG.circles+'</b><button class="ghost" onclick="cntC(1)">+</button></div><div class="mu" style="text-align:center">'+(CFG.circles===2?'Быстрая игра: ':'')+units+' '+rwd(units)+' в круге, всего '+(units*CFG.circles)+'</div></div>';
-h+='<div class="glass"><h2>Игроки</h2><div class="stp"><button class="ghost" '+(CFG.count<=4?'disabled ':'')+'onclick="cnt(-1)">−</button><b>'+CFG.count+'</b><button class="ghost" '+(CFG.count>=18?'disabled ':'')+'onclick="cnt(1)">+</button></div>'+(teams?'<div class="mu" style="text-align:center">Команд: '+units+'</div>':'');
+h+='<div class="glass"><h2>Игроки</h2><div class="stp"><button class="ghost" '+(CFG.count<=3?'disabled ':'')+'onclick="cnt(-1)">−</button><b>'+CFG.count+'</b><button class="ghost" '+(CFG.count>=18?'disabled ':'')+'onclick="cnt(1)">+</button></div>'+(teams?'<div class="mu" style="text-align:center">Команд: '+units+'</div>':'');
 h+='<div class="tg nmt" onclick="namesOpen=!namesOpen;menu()"><b>'+(teams?'Команды и имена':'Имена')+'</b><span class="mu">необязательно '+(namesOpen?'▲':'▼')+'</span></div>';
 if(namesOpen){var ix=0;if(teams){pn.sizes.forEach(function(sz,t){h+='<div class="tmh">Команда '+(t+1)+'</div><div class="nm"><input maxlength="20" placeholder="Название команды" value="'+esc(CFG.teamNames[t]||'')+'" oninput="CFG.teamNames['+t+']=this.value;jset(CK,CFG)"></div>';for(var m=0;m<sz;m++){h+=prow(ix);ix++}})}else{for(var i=0;i<CFG.count;i++)h+=prow(i)}}
 else{h+='<div class="mstrip">';for(var q=0;q<CFG.count;q++)h+=avr(q);h+='</div>'}
@@ -340,10 +340,10 @@ h+='<div class="glass tg" onclick="CFG.cards=!CFG.cards;jset(CK,CFG);menu()"><b>
 if(msg)h+='<div class="err">'+msg+'</div>';
 if(saved&&saved.players)h+='<button class="ghost" onclick="S=saved;screen=\'game\';render()">Продолжить прошлую игру</button>';
 h+='<button class="lnk" onclick="rules()">Правила</button>';
-h+='<div style="height:92px"></div><div class="dock"><button '+(CFG.count<4?'disabled ':'')+'onclick="start()">Начать игру</button></div>';
+h+='<div style="height:92px"></div><div class="dock"><button '+(CFG.count<3?'disabled ':'')+'onclick="start()">Начать игру</button></div>';
 $.innerHTML=h;
 }
-function cnt(d){var c=CFG.count,n=c+d;if(n===7)n=d>0?8:6;if(n<4||n>18)return;CFG.count=n;while(CFG.names.length<n)CFG.names.push('');if(d>0){for(var k=c;k<n;k++)CFG.seeds[k]=newSeed(CFG.seeds.slice(0,k))}CFG.seeds.length=n;jset(CK,CFG);menu()}
+function cnt(d){var c=CFG.count,n=c+d;if(n===7)n=d>0?8:6;if(n<3||n>18)return;CFG.count=n;while(CFG.names.length<n)CFG.names.push('');if(d>0){for(var k=c;k<n;k++)CFG.seeds[k]=newSeed(CFG.seeds.slice(0,k))}CFG.seeds.length=n;jset(CK,CFG);menu()}
 function cntC(d){var n=CFG.circles+d;if(n<2||n>99)return;CFG.circles=n;jset(CK,CFG);menu()}
 function pickSneakyC(c){
 if(c<=2)return [];
@@ -353,7 +353,7 @@ cand=shuffle(cand);
 cand.forEach(function(x){if(r.length<k&&r.every(function(y){return Math.abs(x-y)>1}))r.push(x)});
 return r}
 function start(){
-if(CFG.count<4)return;
+if(CFG.count<3)return;
 var names=[],i,n,k;
 for(i=0;i<CFG.count;i++){n=(CFG.names[i]||'').trim()||('Игрок '+(i+1));k=2;var b=n;while(names.indexOf(n)>-1)n=b+' '+(k++);names.push(n)}
 var pn=plan(CFG.count),pl=[],ix=0,used=[];
