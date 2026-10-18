@@ -115,6 +115,12 @@ h1.ttl .lbl .p{font-size:clamp(16px,6.2vw,29px);line-height:1.05;letter-spacing:
 .bk .bl{width:84%;padding:12px 8px 10px;line-height:1}
 .bk .bl .y{font-size:clamp(26px,10vw,42px);letter-spacing:-.03em}
 .bk .bl .p{font-size:clamp(12px,4.7vw,20px);letter-spacing:-.02em;margin-top:3px}
+.sp{--h:#D9606A}
+.sp .bk{background:conic-gradient(#D9606A 25%,#E27983 0 50%,#D9606A 0 75%,#E27983 0) 0 0/22px 22px}
+.sp .bk .bl{position:relative}
+.sp .bk .bl .stk{position:absolute;top:-16px;right:-14px;transform:rotate(9deg);display:block;background:#26221F;color:#F6DFC9;border:3px solid #F6DFC9;padding:6px 9px 5px;font-size:11px;line-height:1.15;letter-spacing:.01em}
+.sp .art{width:46%}
+.sp .ct.th{font-size:24px;color:#F6DFC9;margin-top:-4px}
 .pill.sk{background:#ff4d3d;color:#fff;margin-bottom:14px}
 .tmh{margin:12px 0 0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
 .av.tm{width:auto;display:flex}.av.tm svg{width:40px;height:40px;flex:none}.av.tm svg+svg{margin-left:-16px}
@@ -178,6 +184,14 @@ var CARDS2=[
 ];
 CARDS1.forEach(function(c){c.k=1});CARDS2.forEach(function(c){c.k=2});
 var CARDS=CARDS1.concat(CARDS2);
+/* Спецкарта от ДК ДАНС: «Если бы музыканты были… [тема]». Выпадает как модификатор, редко, не больше одной за игру */
+var SPEC_P=0.07; /* шанс на раунд с модификатором: меняй здесь */
+var SPECT=[
+{e:'🦸',t:'Супергероями'},{e:'🧑‍🎓',t:'Одноклассниками'},{e:'👩‍🏫',t:'Школьными учителями'},
+{e:'🏢',t:'Героями сериала «Офис»'},{e:'🍽️',t:'Посудой'},{e:'🪑',t:'Мебелью'},{e:'🌷',t:'Цветами'},
+{e:'👕',t:'Одеждой'},{e:'🥤',t:'Напитками'},{e:'⛅',t:'Погодой'},{e:'🐭',t:'Героями мультфильмов'},
+{e:'🧀',t:'Сортами сыра'},{e:'🎬',t:'Героями российского кино'}
+];
 var PAL=['#ffb311','#ff5a8c','#82b3e6'],AVC=['#ffb311','#ff5a8c','#82b3e6','#faf6f4'];
 CARDS.forEach(function(c,i){c.h=PAL[i%3]});
 function hc(c){return typeof c.h==='string'?c.h:PAL[0]}
@@ -368,8 +382,10 @@ S.rolls=[];S.sel=[];S.guess=false;S.card=null;S.flipped=false;S.ch=null;
 S.sn=!!(S.units&&S.sneakyC&&!S.tb&&S.sneakyC.indexOf(Math.floor(S.round/S.units))>-1);
 var el=(S.units?Math.floor(S.round/S.units)>=1:S.round>=2);
 if(S.cards&&el&&!S.tb&&!S.sn){
-var want=true;
-if(S.total>=8&&(S.plain||0)<2)want=Math.random()<0.5;
+var spec=false;
+if(!S.specUsed&&Math.random()<SPEC_P){if(!S.deckT||!S.deckT.length)S.deckT=shuffle(SPECT);var th=S.deckT.pop();S.card={sp:1,k:3,e:th.e,t:th.t,h:'#D9606A'};S.specUsed=true;spec=true}
+var want=!spec;
+if(!spec&&S.total>=8&&(S.plain||0)<2)want=Math.random()<0.5;
 if(want){
 var k=Math.random()<0.5?1:2,key=k===1?'d1':'d2',src=k===1?CARDS1:CARDS2;
 if(!S[key]||!S[key].length)S[key]=shuffle(src);
@@ -408,7 +424,12 @@ function choose(v){S.ch=v;hap();save();game()}
 function judgeIdx(){return S.tb?S.tbJudge:S.round%S.players.length}
 function cid(){return S.card&&S.card.id?S.card.id:''}
 function cands(){var j=judgeIdx(),r=[];S.players.forEach(function(p,i){if(i!==j&&(!S.tb||S.leaders.indexOf(i)>-1))r.push(i)});return r}
+function specHTML(c,fl,click){
+return '<div class="c3 sp'+(fl?' fl':'')+'" id="c3"'+(click?' onclick="'+click+'"':'')+'><div class="ci"><div class="bk"><span class="bl"><span class="y">БИТВА</span><span class="p">ПЛЕЙЛИСТОВ</span><span class="stk">Спецкарта<br>от ДК ДАНС</span></span></div><div class="fc"><span class="cn tl">💿</span><span class="cn br">💿</span><div class="art">'+c.e+'</div><div class="ct">Если бы музыканты были…</div><div class="ct th">'+esc(c.t)+'</div><div class="cd">Скажи, кем или чем был бы артист этого трека</div></div></div></div>';
+}
+function hintTxt(){return themed()?'Тема трека: кость не бросаем':(S.card&&S.card.sp?'Кость как обычно. Объясни трек через тему':'Меняет бросок кости')}
 function cardHTML(c,fl,click){
+if(c.sp)return specHTML(c,fl,click);
 return '<div class="c3'+(fl?' fl':'')+'" id="c3" style="--h:'+hc(c)+'"'+(click?' onclick="'+click+'"':'')+'><div class="ci"><div class="bk"><span class="bl"><span class="y">БИТВА</span><span class="p">ПЛЕЙЛИСТОВ</span></span></div><div class="fc"><span class="cn tl">'+c.e+'</span><span class="cn br">'+c.e+'</span><div class="art">'+c.e+'</div><div class="ct">'+c.t+'</div><div class="cd">'+c.d+'</div></div></div></div>';
 }
 function topbar(){
@@ -419,13 +440,13 @@ $.innerHTML='<div class="rnd">'+topbar()+'<div class="stage"><div class="ill" st
 }
 function cardScreen(){
 var j=S.players[judgeIdx()].name;
-$.innerHTML='<div class="rnd">'+topbar()+'<div class="stage"><div class="cdh" id="hint">'+(S.flipped?(themed()?'Тема трека: кость не бросаем':'Меняет бросок кости'):'Нажми на карту, чтобы открыть модификатор')+'</div>'+cardHTML(S.card,S.flipped,'flipCard()')+'<button id="nx" style="margin-top:22px" '+(S.flipped?'':'disabled')+' onclick="goRoll()">'+(themed()?'К выбору трека':'К броску кости')+'</button></div></div>';
+$.innerHTML='<div class="rnd">'+topbar()+'<div class="stage"><div class="cdh" id="hint">'+(S.flipped?(hintTxt()):'Нажми на карту, чтобы открыть модификатор')+'</div>'+cardHTML(S.card,S.flipped,'flipCard()')+'<button id="nx" style="margin-top:22px" '+(S.flipped?'':'disabled')+' onclick="goRoll()">'+(themed()?'К выбору трека':'К броску кости')+'</button></div></div>';
 }
 function flipCard(){
 if(S.flipped)return;S.flipped=true;hap();save();
 document.getElementById('c3').classList.add('fl');
 document.getElementById('nx').disabled=false;
-document.getElementById('hint').textContent=themed()?'Тема трека: кость не бросаем':'Меняет бросок кости';
+document.getElementById('hint').textContent=hintTxt();
 }
 function goRoll(){S.phase='roll';save();render()}
 function peek(){
@@ -460,7 +481,7 @@ h+=dice(S.rolls,nw)+'<div class="res">'+((c==='sum2'||c==='plus2'||c==='minus2')
 h+=dice(two?[6,6]:[6])+'<button id="rb" onclick="roll()">🎲 Бросить кость</button>';
 }
 h+='</div><div class="glass jd">'+av(S.players[j].name,j)+'<div><div class="l">Судья'+(S.tb?' допраунда':'')+'</div><div class="n">'+esc(S.players[j].name)+'</div>'+(S.players[j].members?'<div class="mu">'+esc(S.players[j].members.join(', '))+'</div>':'')+'</div></div>';
-if(S.card)h+='<div class="strip" style="--h:'+hc(S.card)+'" onclick="peek()"><b>'+S.card.e+'</b>'+S.card.t+'<em>показать</em></div>';
+if(S.card)h+='<div class="strip" style="--h:'+hc(S.card)+'" onclick="peek()"><b>'+S.card.e+'</b>'+(S.card.sp?'Если бы… '+esc(S.card.t.toLowerCase()):S.card.t)+'<em>показать</em></div>';
 h+='<div class="glass vote '+((rolled||th)&&!locked?'':'lock')+'"><h2>'+((rolled||th)&&!locked?(S.sn?'Худший трек у кого? (−1 балл)':'Лучший трек у кого?'):(th?'':'Голосование после броска'))+'</h2>';
 if(cid()==='guess')h+='<div class="chk '+(S.guess?'on':'')+'" onclick="S.guess=!S.guess;game()">'+(S.guess?'✅':'⬜')+' Судья угадал владельца (+1 судье)</div>';
 h+='<div class="grid">';
