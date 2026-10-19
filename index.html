@@ -191,6 +191,20 @@ button.ghost{background:transparent;color:var(--tx);border-color:var(--tx)}
 .toast{border-color:#111;background:var(--ye);color:#111}
 .dots i{width:10px;height:10px;border:2px solid #111;background:transparent}.dots i.c{background:var(--pk)}.dots i.d{background:#111}
 .dock{background:linear-gradient(rgba(130,179,230,0),var(--bg) 45%)}
+/* --- фикс: верхняя панель и экран трека --- */
+.top{flex-wrap:nowrap}
+.top .pill{white-space:nowrap;font-size:11px;padding:9px 12px;border-width:3px}
+.top>span:last-child{flex:none}
+button.sm{font-size:11px;padding:9px 13px;border-width:3px}
+.pill{display:inline-block;line-height:1.2}
+.pill.sk{margin-bottom:10px}
+.tw .res{margin:12px 0 16px!important}
+.tw .res small{margin-top:8px;line-height:1.35}
+.nm{gap:8px}
+.nm input{font-size:16px;padding:12px 14px}
+.nm input::placeholder{font-size:14px;color:#8d8884}
+.nm button.sm{flex:none;padding:12px 14px}
+.tw>button{margin-top:10px}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@900&display=swap" rel="stylesheet">
 </head>
