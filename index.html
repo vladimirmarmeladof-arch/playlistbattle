@@ -226,6 +226,7 @@ h1.ttl .logo{width:min(100%,300px);margin:0 auto}
 .glass:has(>.stp)>h2{display:table;margin:0 auto 14px;text-align:center}
 .pl{background:var(--ck)}
 .pl.on{background:linear-gradient(rgba(255,90,140,.3),rgba(255,90,140,.3)),var(--ck);border-color:var(--pk)}
+.srow{padding:12px 0;border-top:1px solid var(--ln)}.srow b{display:block;font-size:15px}.srow .mu{margin-top:3px;font-size:13px}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@900&display=swap" rel="stylesheet">
 </head>
@@ -293,6 +294,53 @@ var TG=window.Telegram&&window.Telegram.WebApp;
 if(TG){try{TG.ready();TG.expand();TG.setHeaderColor&&TG.setHeaderColor('#82b3e6');TG.setBackgroundColor&&TG.setBackgroundColor('#82b3e6');TG.disableVerticalSwipes&&TG.disableVerticalSwipes()}catch(e){}}
 function hap(t){try{TG&&TG.HapticFeedback&&(t?TG.HapticFeedback.notificationOccurred(t):TG.HapticFeedback.impactOccurred('medium'))}catch(e){}}
 function tick(st){try{if(TG&&TG.HapticFeedback)TG.HapticFeedback.impactOccurred(st||'light');else if(navigator.vibrate)navigator.vibrate(st==='heavy'?80:25)}catch(e){}}
+/* ---------- настройки и бросок встряхиванием ---------- */
+function shakeOn(){return CFG.shake!==false}
+var SH={last:null,lt:0,hits:[],lh:0,cool:0,on:false,fail:false};
+var SHAKE_T=18; /* порог резкости; больше число = надо трясти сильнее */
+function shakeSample(x,y,z){
+var now=Date.now();
+if(SH.last){var dt=Math.max(8,now-SH.lt),d=(Math.abs(x-SH.last[0])+Math.abs(y-SH.last[1])+Math.abs(z-SH.last[2]))/dt*50;
+if(d>SHAKE_T&&now-SH.lh>110){SH.lh=now;SH.hits=SH.hits.filter(function(t){return now-t<900});SH.hits.push(now);
+if(SH.hits.length>=3&&now>SH.cool){SH.hits=[];SH.cool=now+1500;onShake()}}}
+SH.last=[x,y,z];SH.lt=now;
+}
+function onShake(){
+if(!shakeOn()||document.querySelector('.ov'))return;
+var b=document.getElementById('rb');
+if(b&&!b.disabled)roll();
+}
+function motionFallback(){
+if(!window.DeviceMotionEvent){SH.fail=true;return}
+var go=function(){window.addEventListener('devicemotion',function(e){var a=e.accelerationIncludingGravity;if(a&&a.x!=null)shakeSample(a.x,a.y,a.z)});SH.on=true};
+if(typeof DeviceMotionEvent.requestPermission==='function'){DeviceMotionEvent.requestPermission().then(function(r){if(r==='granted')go();else{SH.fail=true;if(document.getElementById('setbox'))setHTML()}}).catch(function(){SH.fail=true})}
+else go();
+}
+function initShake(){
+if(SH.on||SH.started)return;SH.started=true;
+try{
+if(TG&&TG.Accelerometer&&TG.isVersionAtLeast&&TG.isVersionAtLeast('8.0')){
+TG.onEvent('accelerometerChanged',function(){var a=TG.Accelerometer;shakeSample(a.x,a.y,a.z)});
+TG.Accelerometer.start({refresh_rate:50},function(ok){if(ok)SH.on=true;else motionFallback()});
+return}
+}catch(e){}
+motionFallback();
+}
+document.addEventListener('click',function f(){document.removeEventListener('click',f,true);if(shakeOn())initShake()},true);
+function togCards(){CFG.cards=!CFG.cards;jset(CK,CFG);setHTML()}
+function togShake(){CFG.shake=!shakeOn();jset(CK,CFG);if(CFG.shake)initShake();setHTML()}
+function settings(){
+var o=document.createElement('div');o.className='ov';o.onclick=closeOv;
+o.innerHTML='<div class="sh" id="setbox" onclick="event.stopPropagation()"></div>';
+document.body.appendChild(o);setHTML();
+}
+function setHTML(){
+var b=document.getElementById('setbox');if(!b)return;
+b.innerHTML='<h2 style="display:table;margin:10px auto 14px">Настройки</h2>'
++'<div class="tg srow" onclick="togCards()"><div><b>'+JK+'</b><div class="mu">Карточки с особыми условиями</div></div><div class="sw '+(CFG.cards?'on':'')+'"><i></i></div></div>'
++'<div class="tg srow" onclick="togShake()"><div><b>Бросок встряхиванием</b><div class="mu">'+(shakeOn()&&SH.fail?'Датчик движения недоступен':'Кость бросится, если встряхнуть телефон')+'</div></div><div class="sw '+(shakeOn()?'on':'')+'"><i></i></div></div>'
++'<button onclick="closeOv()">Готово</button>';
+}
 var ROLL_TICKS=22; /* длительность броска: тиков по 75 мс, вибрация на каждом */
 function save(){jset(KEY,S)}
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -428,9 +476,9 @@ h+='<div class="tg nmt" onclick="namesOpen=!namesOpen;menu()"><b>'+(teams?'Ко�
 if(namesOpen){var ix=0;if(teams){pn.sizes.forEach(function(sz,t){h+='<div class="tmh">Команда '+(t+1)+'</div><div class="nm"><input maxlength="20" placeholder="Название команды" value="'+esc(CFG.teamNames[t]||'')+'" oninput="CFG.teamNames['+t+']=this.value;jset(CK,CFG)"></div>';for(var m=0;m<sz;m++){h+=prow(ix);ix++}})}else{for(var i=0;i<CFG.count;i++)h+=prow(i)}}
 else{h+='<div class="mstrip">';for(var q=0;q<CFG.count;q++)h+=avr(q);h+='</div>'}
 h+='</div>';
-h+='<div class="glass tg" onclick="CFG.cards=!CFG.cards;jset(CK,CFG);menu()"><b>'+JK+'</b><div class="sw '+(CFG.cards?'on':'')+'"><i></i></div></div>';
 if(msg)h+='<div class="err">'+msg+'</div>';
 if(saved&&saved.players)h+='<button class="ghost" onclick="S=saved;screen=\'game\';render()">Продолжить прошлую игру</button>';
+h+='<button class="ghost" onclick="settings()">Настройки</button>';
 h+='<button class="lnk" onclick="rules()">Правила</button>';
 h+='<div style="height:92px"></div><div class="dock"><button '+(CFG.count<3?'disabled ':'')+'onclick="start()">Начать игру</button></div>';
 $.innerHTML=h;
@@ -556,7 +604,7 @@ h+=dice(S.rolls,nw)+'<div class="res">'+((c==='sum2'||c==='plus2'||c==='minus2')
 }
 }else{
 
-h+=dice(two?[6,6]:[6])+'<button id="rb" onclick="roll()">🎲 Бросить кость</button>';
+h+=dice(two?[6,6]:[6])+'<button id="rb" onclick="roll()">🎲 Бросить кость</button>'+(shakeOn()&&!SH.fail?'<div class="cdh" style="margin:12px 0 0;font-size:14px">или встряхни телефон</div>':'');
 }
 h+='</div><div class="glass jd">'+av(S.players[j].name,j)+'<div><div class="l">Судья'+(S.tb?' допраунда':'')+'</div><div class="n">'+esc(S.players[j].name)+'</div>'+(S.players[j].members?'<div class="mu">'+esc(S.players[j].members.join(', '))+'</div>':'')+'</div></div>';
 if(S.card)h+='<div class="strip" style="--h:'+hc(S.card)+'" onclick="peek()"><b>'+S.card.e+'</b>'+(S.card.sp?'Если бы… '+esc(S.card.t.toLowerCase()):S.card.t)+'<em>показать</em></div>';
